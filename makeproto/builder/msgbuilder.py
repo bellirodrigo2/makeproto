@@ -4,7 +4,7 @@ from typing import Annotated, Any, get_args, get_origin
 from dataclasses import asdict, dataclass, field, fields
 
 from makeproto.builder.jinja_templates import message_template
-from makeproto.prototypes import BaseField, BaseMessage, BaseProto, Int32, String
+from makeproto.prototypes import BaseField, BaseProto, Bool, Bytes, Float, Int64, String
 
 @dataclass
 class MessageBuilder:
@@ -23,7 +23,28 @@ class MessageBuilder:
         template = message_template
         return template.render(message=asdict(self))
 
+
+def get_default(field_type:type[BaseProto])->str:
+    
+    bclass:type[BaseField] | None = None
+    if issubclass(field_type, int):
+        bclass = Int64
+    if issubclass(field_type, float):
+        bclass = Float
+    if issubclass(field_type, str):
+        bclass = String
+    if issubclass(field_type, bytes):
+        bclass = Bytes
+    if issubclass(field_type, bool):
+        bclass = Bool
+    if bclass is not None:
+        return bclass.prototype()
+    raise TypeError()
+    
+    
+
 def get_type(field_type:type[BaseProto])->str:
+    
     if issubclass(field_type, BaseProto):
         return field_type.prototype()
     
@@ -40,7 +61,7 @@ def get_type(field_type:type[BaseProto])->str:
         key_type, value_type = args
         return f"map<{get_type(key_type)}, {get_type(value_type)}>"
 
-    raise TypeError('XXX')
+    return get_default(field_type)
 
 def make_message(msgtype:type):
     builder = MessageBuilder(msgtype.__name__)

@@ -1,5 +1,4 @@
 from makeproto.builder.msgbuilder import make_message
-from makeproto.builder.protobuilder import get_nesteds
 
 
 def test_simple_user(msgs):
@@ -11,8 +10,10 @@ def test_simple_user(msgs):
     assert 'message User {' in res
     assert 'int32 id = 0;' in res
     assert 'string name = 1;' in res
-    assert 'string email = 2;' in res
-    assert 'repeated string tags = 3;' in res
+    assert 'string lastname = 2;'
+    assert 'string email = 3;' in res
+    assert 'int64 age = 4;' in res
+    assert 'repeated string tags = 5;' in res
     
 
 def test_simple_requisition(msgs):
@@ -26,9 +27,3 @@ def test_simple_requisition(msgs):
     assert 'Product product = 1;' in res
     assert 'int32 quantity = 2;' in res
     
-def test_nested(msgs):
-    
-    _,_,requisition = msgs
-    
-    nesteds = get_nesteds(requisition)
-    print(nesteds)

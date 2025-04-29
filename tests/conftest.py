@@ -9,7 +9,9 @@ class User(BaseMessage):
     __proto_file__ = "file.proto"  # apenas atributo da classe
     id: Int32
     name: String
+    lastname:str
     email:String
+    age:int
     tags:list[String]
     
 @dataclass
