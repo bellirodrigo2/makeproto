@@ -43,7 +43,7 @@ class BaseTemplate(BaseTemplate_):
     def build(self):
         template = env.from_string(self.__class__.msg)
         input = asdict(self)
-        return template.render(template=input)
+        return template.render(template=input).strip()
 
 
 stdfield_str = """
@@ -64,13 +64,11 @@ class StdFieldTemplate(BaseTemplate):
         self.number = num
         return num+1
 
-enum_str = """
-enum {{ template.name }} {
+enum_str = """enum {{ template.name }} {
     {% for enum in template.listed %}
     {{ enum.key }} = {{ enum.number }};
     {% endfor %}
-}
-    """
+}"""
 
 
 @dataclass
@@ -110,21 +108,18 @@ class OneOfTemplate(BaseTemplate):
             num = stdtemp.set_number(num)
         return num
 
-message_str2 = """
-message {{ template.name }} {
-  {% for field in template.fields %}
+message_str = """message {{ template.name }} {
+{% for field in template.fields %}
   {{ field }}
-  {% endfor %}
-}
-    """
-
+{% endfor %}
+}"""
 
 @dataclass
 class MessageTemplate(BaseTemplate):
     name: str
     fields: list[str]
 
-    msg = message_str2
+    msg = message_str
 
 
 protofile_str = """

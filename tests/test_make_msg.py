@@ -72,10 +72,7 @@ def test_msg_template():
     msg_str = make_message_proto_str(Hello)
     print(msg_str)
     with open("teste.proto", "w", encoding="utf-8") as f:
-        f.write(f"""syntax = "proto3"; \n
-                {MYENUM2} \n
-                {ENUM2} \n
-                {msg_str}""")
+        f.write(f"""syntax = "proto3";\n{MYENUM2}\n{ENUM2}\n{msg_str}""")
 
 def test_msg_template_fail():
 

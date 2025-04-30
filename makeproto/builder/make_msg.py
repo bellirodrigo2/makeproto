@@ -1,6 +1,7 @@
 import dataclasses
 from collections import defaultdict
 from mimetypes import types_map
+import re
 from typing import Annotated, Any, Optional, Sequence, get_args, get_origin
 
 from makeproto.builder.templates import (
@@ -116,6 +117,33 @@ def get_oneof_details(field: type[Any]) -> Optional[tuple[OneOfKey, str, Any]]:
 
     return ookey, field.name, str_type
 
+def validate_name(name:str, snake_case:bool):
+    if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", name):
+        raise ValueError(f"Invalid proto identifier: {name}")
+    if snake_case:
+        name = to_snake(name)
+    return name
+
+allowed_map_key = [
+    'int32',
+    'int64',
+    'uint32',
+    'uint64',
+    'sint32',
+    'sint64',
+    'fixed32',
+    'fixed64',
+    'sfixed32',
+    'sfixed64',
+    'bool',
+    'string'
+]
+
+oneof_proibido, repeated, map outro oneof
+
+impedir 
+@dataclass 
+class int32(BaseMessage):...
 
 def get_templates(cls: type) -> Sequence[BaseTemplate]:
 
