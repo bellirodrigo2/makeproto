@@ -122,6 +122,17 @@ def teste_int():
             type_ = f.type.prototype()
         assert str_ == type_
 
+def teste_type_fail():
+
+    @dataclass
+    class TypeFail:
+        f1: Path
+        f2: tuple[str,...]
+
+    for f in fields(TypeFail):
+        with pytest.raises(ValueError): 
+            get_type_str(f.type, True)
+
 
 def teste_message():
 

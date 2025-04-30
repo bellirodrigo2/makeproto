@@ -27,7 +27,8 @@ from makeproto.prototypes import (
 )
 
 
-def get_type(field_type: type[Any]):
+def get_type(field_type: type[Any], raise_on_type_error:bool=False):
+    
     if issubclass(field_type, BaseProto):  # type: ignore
         return field_type.prototype()
 
@@ -48,7 +49,12 @@ def get_type(field_type: type[Any]):
             return bclass.prototype()
         return None
 
-    return get_default(field_type)
+    default_= get_default(field_type)
+
+    if raise_on_type_error and default_ is None:
+        raise ValueError(f'Base Type not allowed: {type(field_type)}')
+
+    return default_
 
 allowed_map_key = [
     'int32',
@@ -65,8 +71,7 @@ allowed_map_key = [
     'string'
 ]
 
-def get_type_str(field_type: type[Any]) -> Optional[str]:
-
+def get_type_str(field_type: type[Any], raise_on_type_error:bool=False) -> Optional[str]:
     origin = get_origin(field_type)
     args = get_args(field_type)
     if origin is Annotated:
@@ -91,10 +96,12 @@ def get_type_str(field_type: type[Any]) -> Optional[str]:
         return f"map<{key_type_str}, {value_type_str}>"
 
     if not isinstance(field_type, type):  # type: ignore
-        # ignorar OneOf
-        return
+        origin = get_origin(field_type)
+        if not raise_on_type_error or origin is OneOf:
+            return None
+        raise ValueError(f'Base Type not allowed: {origin}')
 
-    return get_type(field_type)
+    return get_type(field_type,raise_on_type_error)
 
 
 def get_oneof_details(field: type[Any]) -> Optional[tuple[OneOfKey, str, Any]]:
