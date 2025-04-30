@@ -42,6 +42,13 @@ def get_default(field_type: type[Any]) -> Optional[str]:
         return bclass.prototype()
     return None
 
+def get_type(field_type:type[Any]):
+    if issubclass(field_type, BaseProto):  # type: ignore
+        return field_type.prototype()
+
+    return get_default(field_type)
+
+
 
 def get_type_str(field_type: type[Any]) -> Optional[str]:
 
@@ -61,10 +68,39 @@ def get_type_str(field_type: type[Any]) -> Optional[str]:
         # ignorar OneOf
         return
 
-    if issubclass(field_type, BaseProto):  # type: ignore
-        return field_type.prototype()
+    return get_type(field_type)
 
-    return get_default(field_type)
+
+def get_oneof_details2(
+    field: dataclasses.Field[Any],*args:Any
+) -> Optional[tuple[OneOfKey, str, Any]]:
+
+    field_type = field.type
+
+    origin = get_origin(field_type)
+    getargs = get_args(field_type)
+
+    if origin is Annotated:
+        return get_oneof_details2(getargs[0], getargs[1:])
+    details = None
+    if origin is OneOf:
+        ootype = getargs[0]
+        str_type = get_type(ootype)
+        if str_type is None:
+            raise TypeError('base type nao bate')
+        if args:
+            ookey = [el for el in args if isinstance(el, OneOfKey)]
+            if len(ookey) > 0:
+                details = (ookey[0], field.name, str_type)
+            else:
+                raise TypeError('tem args mas nao tem oneofkey')
+        else:
+            default_ = field.default
+            if isinstance(default_, OneOfKey):
+                details = (default_, field.name, ootype)
+            else:
+                raise TypeError("OneOf should have an 'OneOfKey' associated")    
+
 
 
 def get_oneof_details(
@@ -99,7 +135,7 @@ def get_oneof_details(
         # origin deve ter prototype ou get_default
         # se extras for passado use...
         # ou entao default'
-        origin_inner = get_origin(args)
+        # origin_inner = get_origin(args)
         ootype = args[0]
         default_ = field.default
         if isinstance(default_, OneOfKey):
