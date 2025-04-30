@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, fields
-from typing import Mapping, get_origin
+from typing import Any, get_args, get_origin, get_type_hints
 
 from jinja2 import Environment
 
@@ -16,44 +16,38 @@ class BaseTemplate_:
 
 @dataclass
 class BaseTemplate(BaseTemplate_):
-    def validate_types(self):
-        for f in fields(self):
-            value = getattr(self, f.name)
-            exp = f.type
-            origin = get_origin(exp)
-            if origin is list:
-                if not isinstance(value, list):
-                    raise TypeError(
-                        f"Field '{f.name}' expected a list, got {type(value)}"
-                    )
-            else:
-                if not isinstance(value, exp):
-                    raise TypeError(
-                        f"Field '{f.name}' expected {exp}, got {type(value)}"
-                    )
+    def __post_init__(self):
+        type_hints = get_type_hints(self.__class__)
+        for field in fields(self):
+            name = field.name
+            expected_type = type_hints.get(name, None)
+            value = getattr(self, name)
+            if expected_type is not None and not self._is_instance_of_type(
+                value, expected_type
+            ):
+                raise TypeError(
+                    f"Field '{name}' expected {expected_type}, got {type(value)} with value {value}"
+                )
+
+    def _is_instance_of_type(self, value: Any, expected_type: Any) -> bool:
+        origin = get_origin(expected_type)
+        args = get_args(expected_type)
+        if origin is None:
+            return isinstance(value, expected_type)
+        elif origin is list:
+            return isinstance(value, list) and all(
+                self._is_instance_of_type(v, args[0]) for v in value
+            )
+        return False
 
     def build(self):
-        self.validate_types()
         template = env.from_string(self.__class__.msg)
         input = asdict(self)
         return template.render(template=input)
 
 
-@dataclass
-class ListObjTemplate(BaseTemplate):
-
-    def validate_types(self):
-        super().validate_types()
-        allowed_keys = self.__class__.listkeys
-        for el in [asdict(el) for el in self.listed]:
-            if set(el.keys()) != set(allowed_keys):
-                raise TypeError(
-                    f'{self.__class__.__name__} should have keys in "{allowed_keys}" only'
-                )
-
-
 stdfield_str = """
-        {{ template.type }} {{ template.name }} = {{ template.number }};
+{{ template.type }} {{ template.name }} = {{ template.number }};
     """
 
 
@@ -67,13 +61,12 @@ class StdFieldTemplate(BaseTemplate):
 
 
 enum_str = """
-    enum {{ template.name }} {
-          {% for enum in template.listed %}
-          {{ enum.key }} = {{ enum.number }};
-          {% endfor %}
-        }
+enum {{ template.name }} {
+    {% for enum in template.listed %}
+    {{ enum.key }} = {{ enum.number }};
+    {% endfor %}
+}
     """
-# {{template.name}} {{template.key}} = {{template.number}}
 
 
 @dataclass
@@ -83,46 +76,36 @@ class KeyNumber(BaseTemplate):
 
 
 @dataclass
-class EnumTemplate(ListObjTemplate):
+class EnumTemplate(BaseTemplate):
     name: str
     listed: list[KeyNumber]
 
     msg = enum_str
-    listkeys = ("key", "number")
-
-    def validate_types(self):
-        super().validate_types()
-        for el in self.listed:
-            if not isinstance(el.number, int) or not isinstance(el.key, str):
-                raise TypeError(
-                    f"Enum should have one int as values. Found {type(el.number)}"
-                )
 
 
 oneof_str = """
-        oneof {{ template.name }} {
-          {% for field in template.listed %}
-          {{ field.type }} {{ field.name }} = {{ field.number }};
-          {% endfor %}
-        }
+oneof {{ template.name }} {
+  {% for field in template.listed %}
+  {{ field.type }} {{ field.name }} = {{ field.number }};
+  {% endfor %}
+}
     """
 
 
 @dataclass
-class OneOfTemplate(ListObjTemplate):
+class OneOfTemplate(BaseTemplate):
     name: str
     listed: list[StdFieldTemplate]
 
     msg = oneof_str
-    listkeys = ("type", "name", "number")
 
 
 message_str2 = """
-        message {{ template.name }} {
-          {% for field in template.fields %}
-          {{ field }}
-          {% endfor %}
-        }
+message {{ template.name }} {
+  {% for field in template.fields %}
+  {{ field }}
+  {% endfor %}
+}
     """
 
 
@@ -133,22 +116,6 @@ class MessageTemplate(BaseTemplate):
 
     msg = message_str2
 
-    def validate_types(self):
-        super().validate_types()
-        for el in self.fields:
-            if not isinstance(el, str):
-                raise TypeError(
-                    f'Fields should be "str" in MessageTemplate. A {type(el)} was encountered.'
-                )
-
-
-message_str = """
-        message {{ message.name }} {
-          {% for field in message.fields %}
-          {{ field.type }} {{ field.name }} = {{ field.number }};
-          {% endfor %}
-        }
-    """
 
 protofile_str = """
     syntax = "proto3";
@@ -163,7 +130,3 @@ protofile_str = """
     {{ message }}
     {% endfor %}
 """
-
-message_template = env.from_string(message_str)
-
-protofile_template = env.from_string(protofile_str)

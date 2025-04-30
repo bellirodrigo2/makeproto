@@ -1,15 +1,10 @@
-from dataclasses import dataclass, fields
-from typing import Annotated, get_origin
+from typing import Annotated, get_args, get_origin
 
-
-@dataclass
-class Teste:
-    one: str
-    two: Annotated[str, "foo"]
-    three: list[str]
+from makeproto.prototypes import OneOf
 
 
 def teste_():
-    for f in fields(Teste):
-        origin = get_origin(f.type)
-        print(f.type, origin)
+    ct = OneOf[str]
+    dd = Annotated[OneOf[str], 123]
+
+    odd = get_origin(dd)

@@ -1,5 +1,6 @@
 import dataclasses
 from collections import defaultdict
+from mimetypes import types_map
 from typing import Annotated, Any, Optional, Sequence, get_args, get_origin
 
 from makeproto.builder.templates import (
@@ -25,29 +26,28 @@ from makeproto.prototypes import (
 )
 
 
-def get_default(field_type: type[Any]) -> Optional[str]:
-
-    bclass: Optional[type[BaseField]] = None
-    if issubclass(field_type, int):
-        bclass = Int64
-    if issubclass(field_type, float):
-        bclass = Float
-    if issubclass(field_type, str):
-        bclass = String
-    if issubclass(field_type, bytes):
-        bclass = Bytes
-    if issubclass(field_type, bool):
-        bclass = Bool
-    if bclass is not None:
-        return bclass.prototype()
-    return None
-
-def get_type(field_type:type[Any]):
+def get_type(field_type: type[Any]):
     if issubclass(field_type, BaseProto):  # type: ignore
         return field_type.prototype()
 
-    return get_default(field_type)
+    def get_default(field_type: type[Any]) -> Optional[str]:
 
+        bclass: Optional[type[BaseField]] = None
+        if issubclass(field_type, int):
+            bclass = Int64
+        if issubclass(field_type, float):
+            bclass = Float
+        if issubclass(field_type, str):
+            bclass = String
+        if issubclass(field_type, bytes):
+            bclass = Bytes
+        if issubclass(field_type, bool):
+            bclass = Bool
+        if bclass is not None:
+            return bclass.prototype()
+        return None
+
+    return get_default(field_type)
 
 
 def get_type_str(field_type: type[Any]) -> Optional[str]:
@@ -58,91 +58,63 @@ def get_type_str(field_type: type[Any]) -> Optional[str]:
         return get_type_str(args[0])
 
     if origin in {list, set}:
-        return f"repeated {get_type_str(args[0])}"
+        type_str = get_type(args[0])
+        # testar se raise aqui...com list[Path]
+        return f"repeated {type_str}"
 
     if origin is dict:
         key_type, value_type = args
-        return f"map<{get_type_str(key_type)}, {get_type_str(value_type)}>"
+        key_type_str = get_type(key_type)
+        value_type_str = get_type(value_type)
+        # testar se raise aqui com dict[Path,Counter]
+        return f"map<{key_type_str}, {value_type_str}>"
 
-    if not isinstance(field_type, type):
+    if not isinstance(field_type, type):  # type: ignore
         # ignorar OneOf
         return
 
     return get_type(field_type)
 
 
-def get_oneof_details2(
-    field: dataclasses.Field[Any],*args:Any
-) -> Optional[tuple[OneOfKey, str, Any]]:
-
-    field_type = field.type
-
-    origin = get_origin(field_type)
-    getargs = get_args(field_type)
-
-    if origin is Annotated:
-        return get_oneof_details2(getargs[0], getargs[1:])
-    details = None
-    if origin is OneOf:
-        ootype = getargs[0]
-        str_type = get_type(ootype)
-        if str_type is None:
-            raise TypeError('base type nao bate')
-        if args:
-            ookey = [el for el in args if isinstance(el, OneOfKey)]
-            if len(ookey) > 0:
-                details = (ookey[0], field.name, str_type)
-            else:
-                raise TypeError('tem args mas nao tem oneofkey')
-        else:
-            default_ = field.default
-            if isinstance(default_, OneOfKey):
-                details = (default_, field.name, ootype)
-            else:
-                raise TypeError("OneOf should have an 'OneOfKey' associated")    
-
-
-
-def get_oneof_details(
-    field: dataclasses.Field[Any],
-) -> Optional[tuple[OneOfKey, str, Any]]:
+def get_oneof_details(field: type[Any]) -> Optional[tuple[OneOfKey, str, Any]]:
 
     field_type = field.type
 
     origin = get_origin(field_type)
     args = get_args(field_type)
 
-    details = None
+    ookey = None
     if origin is Annotated:
-        ftype, *extras = args
-        origin_inner = get_origin(ftype)
-        args_inner = get_args(ftype)
-        # recursivo
-        # passar extras deve ter OneOfKey
-        if isinstance(origin_inner, type) and issubclass(origin_inner, OneOf):
 
-            ootype = args_inner[0]
-            ookey = [el for el in extras if isinstance(el, OneOfKey)]
+        def get_oneofkey_by_extra(args: Any) -> OneOfKey:
+            ookey = [el for el in args if isinstance(el, OneOfKey)]
             if len(ookey) > 0:
-                details = (ookey[0], field.name, ootype)
+                return ookey[0]
+            raise TypeError("tem args mas nao tem oneofkey")
+
+        ookey = get_oneofkey_by_extra(args[1:])
+        origin = get_origin(args[0])
+        args = get_args(args[0])
+
+    if origin is not OneOf:
+        if ookey is None:
+            return None
+        raise TypeError('Annotated has "OneOfKey", but the type is not "OneOf"')
+
+    str_type = get_type(args[0])
+    if str_type is None:
+        raise TypeError("base type nao bate")
+    if ookey is None:
+
+        def get_oneofkey_by_default(default_: Any) -> OneOfKey:
+            if isinstance(default_, OneOfKey):
+                return default_
             else:
-                raise TypeError('Annotated "OneOf", should have a OneOfKey on extras')
-        else:
-            if [el for el in extras if isinstance(el, OneOfKey)]:
-                raise TypeError("XXX")
-    elif origin is OneOf:
-        # aqui, falta checar se eh BaseField ou basetypes, str, int, etc...pode list ?
-        # origin deve ter prototype ou get_default
-        # se extras for passado use...
-        # ou entao default'
-        # origin_inner = get_origin(args)
-        ootype = args[0]
-        default_ = field.default
-        if isinstance(default_, OneOfKey):
-            details = (default_, field.name, ootype)
-        else:
-            raise TypeError("OneOf should have an 'OneOfKey' associated")
-    return details
+                raise TypeError("OneOf should have an 'OneOfKey' associated")
+
+        ookey = get_oneofkey_by_default(field.default)
+
+    return ookey, field.name, str_type
 
 
 def get_templates(cls: type) -> Sequence[BaseTemplate]:

@@ -38,9 +38,8 @@ def test_std_field_ok(type, name, number, expected):
 )
 def test_std_field_raise(type, name, number):
 
-    template = StdFieldTemplate(type, name, number)
     with pytest.raises(TypeError):
-        template.build()
+        StdFieldTemplate(type, name, number)
 
 
 # ----------- ENUM TESTS --------------
@@ -73,16 +72,22 @@ def test_enum_ok(name, values, expected_snippet):
         (None, [KeyNumber("ON", 1)]),
         ("Color", "not-a-list"),
         (123, [KeyNumber("ON", 1)]),
-        ("Color", [KeyNumber("ON", "hello")]),
-        ("Color", [KeyNumber("ON", None)]),
-        ("Color", [KeyNumber("ON", [])]),
-        ("Color", [KeyNumber(1, 1)]),
-        ("Color", [{"wrong": "entry"}]),
     ],
 )
 def test_enum_raise(name, values):
     with pytest.raises(TypeError):
         EnumTemplate(name, values).build()
+
+
+def test_enum_raise2():
+    with pytest.raises(TypeError):
+        KeyNumber("ON", "hello")
+    with pytest.raises(TypeError):
+        KeyNumber("ON", None)
+    with pytest.raises(TypeError):
+        KeyNumber("ON", [])
+    with pytest.raises(TypeError):
+        KeyNumber(1, 1)
 
 
 # ----------- ONEOF TESTS --------------

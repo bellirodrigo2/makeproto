@@ -16,10 +16,10 @@ def test_ok():
         d: OneOf[bool] = OneOfKey("choice")
 
     exp = [
-        ("choice", "a", str),
-        ("choice", "b", bytes),
-        ("choice", "c", int),
-        ("choice", "d", bool),
+        ("choice", "a", "string"),
+        ("choice", "b", "bytes"),
+        ("choice", "c", "int64"),
+        ("choice", "d", "bool"),
     ]
     for i, f in enumerate(fields(Hello)):
         oodetails = get_oneof_details(f)
@@ -31,9 +31,9 @@ def test_fail():
     class Hello(BaseMessage):
         a: OneOf[bool]
         b: Annotated[str, OneOfKey("choice")]
-        # c: Annotated[OneOf[list[str]], OneOfKey("choice")]
+        c: Annotated[OneOf[list[str]], OneOfKey("choice")]
         d: Annotated[OneOf[bytes], 123, "helloworld"]
-        # g: OneOf[list[int]] = OneOfKey("foobar")
+        g: OneOf[list[int]] = OneOfKey("foobar")
         aa: OneOf[str] = 3
 
     for f in fields(Hello):
