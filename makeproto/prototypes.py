@@ -1,6 +1,6 @@
+import enum
+from typing import Generic, TypeVar
 
-from dataclasses import dataclass
-from typing import Any
 
 class BaseProto:
     @classmethod
@@ -9,7 +9,8 @@ class BaseProto:
 
 
 class BaseMessage(BaseProto):
-    __proto_file__: str = ''
+    __proto_file__: str = ""
+    __proto_package__: str = ""
 
     @classmethod
     def prototype(cls) -> str:
@@ -17,69 +18,37 @@ class BaseMessage(BaseProto):
 
 
 class BaseField(BaseProto):
-    def __init__(self, default: Any = ..., **meta: Any):
-        self._default = default
-        self.meta = meta
-    
     @classmethod
     def python_type(cls):
         raise NotImplementedError()
 
-class BaseStringField(str, BaseField):
-    def __new__(cls, value: Any = "", *args, **kwargs):
-        obj = str.__new__(cls, value)
-        return obj
 
-    def __init__(self, value: Any = "", default: Any = ..., **meta: Any):
-        super().__init__(default=default, **meta)
-        
+class BaseStringField(str, BaseField):
     @classmethod
     def python_type(cls):
         return str
 
+
 class BaseIntField(int, BaseField):
-    def __new__(cls, value: Any = 0, *args, **kwargs):
-        obj = int.__new__(cls, value)
-        return obj
-
-    def __init__(self, value: Any = 0, default: Any = ..., **meta: Any):
-        super().__init__(default=default, **meta)
-
     @classmethod
     def python_type(cls):
         return int
 
+
 class BaseFloatField(float, BaseField):
-    def __new__(cls, value: Any = 0.0, *args, **kwargs):
-        obj = float.__new__(cls, value)
-        return obj
-
-    def __init__(self, value: Any = 0.0, default: Any = ..., **meta: Any):
-        super().__init__(default=default, **meta)
-
-
     @classmethod
     def python_type(cls):
         return float
 
 
 class BaseBytesField(bytes, BaseField):
-    def __new__(cls, value: Any = b"", *args, **kwargs):
-        if isinstance(value, str):
-            value = value.encode()
-        obj = bytes.__new__(cls, value)
-        return obj
-
-    def __init__(self, value: Any = b"", default: Any = ..., **meta: Any):
-        super().__init__(default=default, **meta)
-
     @classmethod
     def python_type(cls):
         return bytes
 
+
 class BaseBoolField(BaseField):
-    def __init__(self, value: bool = False, default: Any = ..., **meta: Any):
-        super().__init__(default=default, **meta)
+    def __init__(self, value: bool = False):
         self._value = bool(value)
 
     def __bool__(self):
@@ -92,7 +61,7 @@ class BaseBoolField(BaseField):
     def python_type(cls):
         return bool
 
-    
+
 class Double(BaseFloatField):
     @classmethod
     def prototype(cls) -> str:
@@ -181,3 +150,25 @@ class Bytes(BaseBytesField):
     @classmethod
     def prototype(cls) -> str:
         return "bytes"
+
+
+class Enum(BaseMessage, enum.Enum): ...
+
+
+T = TypeVar("T")
+
+
+class OneOf(BaseField, Generic[T]): ...
+
+
+class OneOfKey(str):
+    def __new__(cls, value):
+        if not isinstance(value, str):
+            raise TypeError(
+                f"{cls.__name__} wait a str, but got {type(value).__name__}"
+            )
+        return str.__new__(cls, value)
+
+
+# messagebuilder tem que checar se tem outros nomes
+# package nao pode ter mesmo nome de message
