@@ -1,5 +1,8 @@
 from dataclasses import dataclass, fields
+from pathlib import Path
 from typing import Annotated, get_args, get_origin
+
+import pytest
 
 from makeproto.builder.make_msg import get_type_str
 from makeproto.prototypes import (
@@ -122,8 +125,6 @@ def teste_int():
 
 def teste_message():
 
-    class C1(BaseMessage): ...
-
     class C2(BaseMessage): ...
 
     class C3(BaseMessage): ...
@@ -149,9 +150,7 @@ def teste_message():
         assert str_ == type_
 
 
-def teste_list():
-
-    class C1(BaseMessage): ...
+def teste_list_ok():
 
     @dataclass
     class ListClass:
@@ -168,19 +167,49 @@ def teste_list():
         str_ = get_type_str(f.type)
         assert str_.startswith("repeated")
 
+def teste_list_fail():
+    @dataclass
+    class MapClass:
+        f1: list[Path]
+        f2: list[list[str]]
+        f3: list[dict[str,str]]
+        f4: Annotated[list[Path], 'foobar']
+        f5: Annotated[list[list[str]],123]
 
-def teste_map():
+    for f in fields(class_or_instance=MapClass):
+        with pytest.raises(ValueError):        
+            get_type_str(f.type)
 
-    class C1(BaseMessage): ...
+
+class C1(BaseMessage): ...
+
+def teste_map_ok():
 
     @dataclass
     class MapClass:
         f1: dict[str, C1]
-        f2: Annotated[dict[C1, int], "foobar"]
+        f2: Annotated[dict[Int32, int], "foobar"]
         f3: dict[Int32, str]
-        f4: Annotated[dict[C1, Fixed64], "foobar"]
+        f4: Annotated[dict[int, Fixed64], "foobar"]
 
     for f in fields(class_or_instance=MapClass):
         str_ = get_type_str(f.type)
         assert str_.startswith("map<")
         assert str_.endswith(">")
+
+def teste_map_fail():
+    @dataclass
+    class MapClass:
+        f1: dict[Bytes, C1]
+        f2: Annotated[dict[bytes, int], "foobar"]
+        f3: dict[list[str], str]
+        f4: Annotated[dict[float, Fixed64], "foobar"]
+        f5: Annotated[dict[Float, Fixed64], "foobar"]
+        f6: Annotated[dict[Double, Fixed64], "foobar"]
+        f7: Annotated[dict[list[str], str], "foobar"]
+        f8: Annotated[dict[str, Path], "foobar"]
+        f9: Annotated[dict[Path, str], "foobar"]
+
+    for f in fields(class_or_instance=MapClass):
+        with pytest.raises(ValueError):        
+            get_type_str(f.type)

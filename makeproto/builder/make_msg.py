@@ -50,6 +50,20 @@ def get_type(field_type: type[Any]):
 
     return get_default(field_type)
 
+allowed_map_key = [
+    'int32',
+    'int64',
+    'uint32',
+    'uint64',
+    'sint32',
+    'sint64',
+    'fixed32',
+    'fixed64',
+    'sfixed32',
+    'sfixed64',
+    'bool',
+    'string'
+]
 
 def get_type_str(field_type: type[Any]) -> Optional[str]:
 
@@ -60,14 +74,20 @@ def get_type_str(field_type: type[Any]) -> Optional[str]:
 
     if origin in {list, set}:
         type_str = get_type(args[0])
-        # testar se raise aqui...com list[Path]
+        if type_str is None:
+            raise ValueError(f'List type cannot be {type(type_str)}')
         return f"repeated {type_str}"
 
     if origin is dict:
         key_type, value_type = args
         key_type_str = get_type(key_type)
         value_type_str = get_type(value_type)
-        # testar se raise aqui com dict[Path,Counter]
+
+        if key_type_str is None or key_type_str not in allowed_map_key:
+            raise ValueError(f'Map key cannot be {type(value_type)}')
+        if value_type_str is None:
+            raise ValueError(f'Map value cannot be {type(key_type)}')
+
         return f"map<{key_type_str}, {value_type_str}>"
 
     if not isinstance(field_type, type):  # type: ignore
@@ -104,7 +124,7 @@ def get_oneof_details(field: type[Any]) -> Optional[tuple[OneOfKey, str, Any]]:
 
     str_type = get_type(args[0])
     if str_type is None:
-        raise TypeError("base type nao bate")
+        raise TypeError(f"OneOf type is not allowed {type(args[0])}")
     if ookey is None:
 
         def get_oneofkey_by_default(default_: Any) -> OneOfKey:
@@ -117,6 +137,9 @@ def get_oneof_details(field: type[Any]) -> Optional[tuple[OneOfKey, str, Any]]:
 
     return ookey, field.name, str_type
 
+def to_snake(name:str)->str:
+    return re.sub(r'(?<!^)(?=[A-Z])', '_', s).lower()
+
 def validate_name(name:str, snake_case:bool):
     if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", name):
         raise ValueError(f"Invalid proto identifier: {name}")
@@ -124,46 +147,37 @@ def validate_name(name:str, snake_case:bool):
         name = to_snake(name)
     return name
 
-allowed_map_key = [
-    'int32',
-    'int64',
-    'uint32',
-    'uint64',
-    'sint32',
-    'sint64',
-    'fixed32',
-    'fixed64',
-    'sfixed32',
-    'sfixed64',
-    'bool',
-    'string'
-]
+# oneof_proibido, repeated, map outro oneof
 
-oneof_proibido, repeated, map outro oneof
+# impedir 
+# @dataclass 
+# class int32(BaseMessage):...
 
-impedir 
-@dataclass 
-class int32(BaseMessage):...
-
-def get_templates(cls: type) -> Sequence[BaseTemplate]:
+def get_templates(cls: type, snake_camel_mode:bool=False) -> Sequence[BaseTemplate]:
 
     templates: list[BaseTemplate] = []
 
     oneofs: dict[str, list[StdFieldTemplate]] = defaultdict(list)
 
+
     for f in dataclasses.fields(cls):
+    
+        name = validate_name(f.name, snake_camel_mode)
+
         str_temp = get_type_str(f.type)
         if str_temp is not None:
-            templates.append(StdFieldTemplate(type=str_temp, name=f.name, number=0))
+            templates.append(StdFieldTemplate(type=str_temp, name=name, number=0))
         else:
             oodetail = get_oneof_details(f)
 
             if oodetail is not None:
-                key, name, type_ = oodetail
-                oneofs[key].append(StdFieldTemplate(type_, name, 0))
+                key, name_, type_ = oodetail
+                name_ = validate_name(name_, snake_camel_mode)
+                oneofs[key].append(StdFieldTemplate(type_, name_, 0))
 
     for k, v in oneofs.items():
-        ootemp = OneOfTemplate(name=k, listed=v)
+        name_ = validate_name(k, snake_camel_mode)
+        ootemp = OneOfTemplate(name=name_, listed=v)
         templates.append(ootemp)
 
     return templates

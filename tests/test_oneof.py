@@ -26,7 +26,7 @@ def test_ok():
         assert oodetails == exp[i]
 
 
-def test_fail():
+def test_fail_syntax():
     @dataclass
     class Hello(BaseMessage):
         a: OneOf[bool]
@@ -39,3 +39,18 @@ def test_fail():
     for f in fields(Hello):
         with pytest.raises(TypeError):
             get_oneof_details(f)
+
+def test_fail_types():
+    @dataclass
+    class Hello(BaseMessage):
+        a: Annotated[OneOf[list[bool]], OneOfKey("choice")]
+        b: Annotated[OneOf[dict[str,bool]], OneOfKey("choice")]
+
+    for f in fields(Hello):
+        with pytest.raises(TypeError):
+            get_oneof_details(f)
+
+    with pytest.raises(TypeError):
+        @dataclass
+        class Hello2(BaseMessage):
+            b: Annotated[OneOf[dict[str,bool]], OneOfKey(3)]
