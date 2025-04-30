@@ -152,5 +152,8 @@ def make_enum_proto_str(field: type[Enum]) -> str:
 
 def make_message_proto_str(cls: type[BaseMessage]) -> str:
     templates = get_templates(cls)
+    counter = 1
+    for temp in templates:
+        counter = temp.set_number(counter)
     temp_str = [t.build().strip("\n") for t in templates]
     return MessageTemplate(name=cls.__name__, fields=temp_str).build()

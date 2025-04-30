@@ -60,6 +60,10 @@ class StdFieldTemplate(BaseTemplate):
     msg = stdfield_str
 
 
+    def set_number(self, num:int):
+        self.number = num
+        return num+1
+
 enum_str = """
 enum {{ template.name }} {
     {% for enum in template.listed %}
@@ -85,9 +89,9 @@ class EnumTemplate(BaseTemplate):
 
 oneof_str = """
 oneof {{ template.name }} {
-  {% for field in template.listed %}
-  {{ field.type }} {{ field.name }} = {{ field.number }};
-  {% endfor %}
+    {% for field in template.listed %}
+    {{ field.type }} {{ field.name }} = {{ field.number }};
+    {% endfor %}
 }
     """
 
@@ -99,6 +103,12 @@ class OneOfTemplate(BaseTemplate):
 
     msg = oneof_str
 
+
+    def set_number(self, num:int):
+        
+        for stdtemp in self.listed:
+            num = stdtemp.set_number(num)
+        return num
 
 message_str2 = """
 message {{ template.name }} {

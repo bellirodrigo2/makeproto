@@ -5,7 +5,7 @@ from typing import Annotated, Counter
 
 import pytest
 
-from makeproto.builder.make_msg import get_templates, make_message_proto_str
+from makeproto.builder.make_msg import get_templates, make_enum_proto_str, make_message_proto_str
 from makeproto.builder.templates import OneOfTemplate
 from makeproto.prototypes import (
     BaseMessage,
@@ -49,7 +49,7 @@ class Hello(BaseMessage):
     j: list[str]
     k: Annotated[list[Bool], 1]
     l: dict[str, MyEnum]
-    m: Annotated[dict[Enum2, Bytes], []]
+    m: Annotated[dict[Int32, Bytes], []]
     n: datetime
     o: Path
     p: Counter[int]
@@ -66,11 +66,16 @@ def test_get_template():
 
 def test_msg_template():
 
+    MYENUM2 = make_enum_proto_str(MyEnum)
+    ENUM2 = make_enum_proto_str(Enum2)
+
     msg_str = make_message_proto_str(Hello)
     print(msg_str)
     with open("teste.proto", "w", encoding="utf-8") as f:
-        f.write(f'syntax = "proto3" \n\n{msg_str}')
-
+        f.write(f"""syntax = "proto3"; \n
+                {MYENUM2} \n
+                {ENUM2} \n
+                {msg_str}""")
 
 def test_msg_template_fail():
 
