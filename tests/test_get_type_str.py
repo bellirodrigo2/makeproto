@@ -130,8 +130,7 @@ def teste_type_fail():
         f2: tuple[str,...]
 
     for f in fields(TypeFail):
-        with pytest.raises(ValueError): 
-            get_type_str(f.type, True)
+        assert get_type_str(f.type) is None
 
 
 def teste_message():
@@ -188,8 +187,7 @@ def teste_list_fail():
         f5: Annotated[list[list[str]],123]
 
     for f in fields(class_or_instance=MapClass):
-        with pytest.raises(ValueError):        
-            get_type_str(f.type)
+        assert get_type_str(f.type) is None
 
 
 class C1(BaseMessage): ...
@@ -222,5 +220,4 @@ def teste_map_fail():
         f9: Annotated[dict[Path, str], "foobar"]
 
     for f in fields(class_or_instance=MapClass):
-        with pytest.raises(ValueError):        
-            get_type_str(f.type)
+        assert get_type_str(f.type) is None

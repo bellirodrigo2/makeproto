@@ -63,6 +63,11 @@ def test_get_template_ok():
     assert len(templates) == 13
     assert len([x for x in templates if isinstance(x, OneOfTemplate)]) == 2
 
+def test_get_template_error():
+
+    with pytest.raises(ValueError):
+        get_templates(Hello, ignore_error=False)
+
 
 def test_get_template_fail():
     @dataclass
@@ -71,6 +76,7 @@ def test_get_template_fail():
 
     with pytest.raises(ValueError):
         get_templates(Fail)
+    
 
 
 def test_msg_template():

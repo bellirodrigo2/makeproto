@@ -1,6 +1,5 @@
 import dataclasses
 from collections import defaultdict
-from mimetypes import types_map
 import re
 from typing import Annotated, Any, Optional, Sequence, get_args, get_origin
 
@@ -27,7 +26,7 @@ from makeproto.prototypes import (
 )
 
 
-def get_type(field_type: type[Any], raise_on_type_error:bool=False):
+def get_type(field_type: type[Any]):
     
     if issubclass(field_type, BaseProto):  # type: ignore
         return field_type.prototype()
@@ -49,12 +48,7 @@ def get_type(field_type: type[Any], raise_on_type_error:bool=False):
             return bclass.prototype()
         return None
 
-    default_= get_default(field_type)
-
-    if raise_on_type_error and default_ is None:
-        raise ValueError(f'Base Type not allowed: {type(field_type)}')
-
-    return default_
+    return get_default(field_type)
 
 allowed_map_key = [
     'int32',
@@ -71,7 +65,7 @@ allowed_map_key = [
     'string'
 ]
 
-def get_type_str(field_type: type[Any], raise_on_type_error:bool=False) -> Optional[str]:
+def get_type_str(field_type: type[Any]) -> Optional[str]:
     origin = get_origin(field_type)
     args = get_args(field_type)
     if origin is Annotated:
@@ -80,7 +74,7 @@ def get_type_str(field_type: type[Any], raise_on_type_error:bool=False) -> Optio
     if origin in {list, set}:
         type_str = get_type(args[0])
         if type_str is None:
-            raise ValueError(f'List type cannot be {type(type_str)}')
+            return None
         return f"repeated {type_str}"
 
     if origin is dict:
@@ -88,20 +82,15 @@ def get_type_str(field_type: type[Any], raise_on_type_error:bool=False) -> Optio
         key_type_str = get_type(key_type)
         value_type_str = get_type(value_type)
 
-        if key_type_str is None or key_type_str not in allowed_map_key:
-            raise ValueError(f'Map key cannot be {type(value_type)}')
-        if value_type_str is None:
-            raise ValueError(f'Map value cannot be {type(key_type)}')
+        if key_type_str is None or value_type_str is None or key_type_str not in allowed_map_key:
+            return None
 
         return f"map<{key_type_str}, {value_type_str}>"
 
     if not isinstance(field_type, type):  # type: ignore
-        origin = get_origin(field_type)
-        if not raise_on_type_error or origin is OneOf:
-            return None
-        raise ValueError(f'Base Type not allowed: {origin}')
+        return None
 
-    return get_type(field_type,raise_on_type_error)
+    return get_type(field_type)
 
 
 def get_oneof_details(field: type[Any]) -> Optional[tuple[OneOfKey, str, Any]]:
@@ -133,7 +122,7 @@ def get_oneof_details(field: type[Any]) -> Optional[tuple[OneOfKey, str, Any]]:
     if str_type is None:
         raise TypeError(f"OneOf type is not allowed {type(args[0])}")
     if ookey is None:
-
+        #se mudar conforme todo:remove essa opcao
         def get_oneofkey_by_default(default_: Any) -> OneOfKey:
             if isinstance(default_, OneOfKey):
                 return default_
@@ -160,12 +149,11 @@ def validate_name(name:str, snake_case:bool):
 # @dataclass 
 # class int32(BaseMessage):...
 
-def get_templates(cls: type, snake_camel_mode:bool=False) -> Sequence[BaseTemplate]:
+def get_templates(cls: type, snake_camel_mode:bool=False, ignore_error:bool=True) -> Sequence[BaseTemplate]:
 
     templates: list[BaseTemplate] = []
 
     oneofs: dict[str, list[StdFieldTemplate]] = defaultdict(list)
-
 
     for f in dataclasses.fields(cls):
     
@@ -181,6 +169,11 @@ def get_templates(cls: type, snake_camel_mode:bool=False) -> Sequence[BaseTempla
                 key, name_, type_ = oodetail
                 name_ = validate_name(name_, snake_camel_mode)
                 oneofs[key].append(StdFieldTemplate(type_, name_, 0))
+            else:
+                #se mudar conforme todo, checat se tem default aqui...se nao raise..se sim ignore
+                if not ignore_error:
+                    raise ValueError(f'Invalid Field {f.type}')
+
 
     for k, v in oneofs.items():
         name_ = validate_name(k, snake_camel_mode)
