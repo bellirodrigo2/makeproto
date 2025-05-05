@@ -1,5 +1,5 @@
 import enum
-from typing import Generic, TypeVar
+from typing import Generic, Optional, TypeVar
 
 
 class BaseProto:
@@ -162,6 +162,10 @@ class OneOf(BaseField, Generic[T]): ...
 class OneOfKey(str):
     pass
 
+class FieldOptions:
+    def __init__(self, comments:Optional[str]=None, json_name:Optional[str]=None) -> None:
+        self.comments=comments
+        self.json_name=json_name
 
 # messagebuilder tem que checar se tem outros nomes
 # package nao pode ter mesmo nome de message

@@ -11,6 +11,7 @@ from makeproto.prototypes import (
     Bool,
     Bytes,
     Enum,
+    FieldOptions,
     Float,
     Int64,
     OneOf,
@@ -163,7 +164,12 @@ def get_templates(
 
         str_temp = get_type_str(arg)
         if str_temp is not None:
-            templates.append(StdFieldTemplate(type=str_temp, name=name, number=0))
+            options = arg.getinstance(FieldOptions)
+            comments, json_name = None, None
+            if options is not None:
+                comments = options.comments
+                json_name = options.json_name
+            templates.append(StdFieldTemplate(type=str_temp, name=name, number=0,comments=comments, json_name=json_name))
         else:
             oodetail = get_oneof_details(arg, snake_camel_mode)
 

@@ -10,7 +10,8 @@ message User {
   ID id = 1;
   string name = 2;
   string lastname = 3;
-  string email = 4;
+  // email comment
+string email = 4 [json_name = "email_field"];
   int64 age = 5;
   repeated string tags = 6;
   Code code2 = 7;

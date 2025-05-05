@@ -110,3 +110,7 @@ def test_convert(
     assert proto_user.o4 == ''
     
     # obj_req = requisition(user=obj_u)
+
+    # testar list e set
+    # list[enum]
+    # tentar enum normal sem ser do makeproto

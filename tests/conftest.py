@@ -6,6 +6,7 @@ import pytest
 from makeproto.prototypes import (
     BaseMessage,
     Enum,
+    FieldOptions,
     Float,
     Int32,
     OneOf,
@@ -25,7 +26,7 @@ class User(BaseMessage):
     id: ID
     name: String
     lastname: str
-    email: String
+    email: Annotated[String, FieldOptions(comments='email comment', json_name='email_field')]
     age: int
     tags: list[String]
     code2: "Code"
