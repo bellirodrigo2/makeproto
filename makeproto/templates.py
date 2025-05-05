@@ -1,7 +1,9 @@
-from dataclasses import asdict, dataclass, fields
-from typing import Any, get_args, get_origin, get_type_hints
+from dataclasses import asdict, dataclass
+from typing import Any, Optional, Union, get_args, get_origin
 
 from jinja2 import Environment
+
+from makeproto.mapclass import FuncArg, get_dataclass_fields
 
 env = Environment(
     trim_blocks=True,
@@ -14,19 +16,33 @@ class BaseTemplate_:
     listkeys: tuple[str, ...] = ()
 
 
+def check_optional(arg: FuncArg, value: Any) -> bool:
+    args = arg.args
+    if arg.origin is Union and type(None) in args:
+        if value is None or type(value) in args:
+            return True
+        raise TypeError(
+            f'Optional Field "{arg.name}" should have a value None or {arg.basetype}. Found {type(value)}'
+        )
+    return False
+
+
 @dataclass
 class BaseTemplate(BaseTemplate_):
     def __post_init__(self):
-        type_hints = get_type_hints(self.__class__)
-        for field in fields(self):
-            name = field.name
-            expected_type = type_hints.get(name, None)
+
+        args = get_dataclass_fields(self.__class__)
+
+        for arg in args:
+            name = arg.name
             value = getattr(self, name)
-            if expected_type is not None and not self._is_instance_of_type(
-                value, expected_type
+            if check_optional(arg, value):
+                continue
+            if arg.basetype is not None and not self._is_instance_of_type(
+                value, arg.basetype
             ):
                 raise TypeError(
-                    f"Field '{name}' expected {expected_type}, got {type(value)} with value {value}"
+                    f"Field '{name}' expected {arg.basetype}, got {type(value)} with value {value}"
                 )
 
     def _is_instance_of_type(self, value: Any, expected_type: Any) -> bool:
@@ -40,15 +56,24 @@ class BaseTemplate(BaseTemplate_):
             )
         return False
 
-    def build(self):
+    def set_number(self, num: int) -> int:
+        return num
+
+    def build(self) -> str:
         template = env.from_string(self.__class__.msg)
         input = asdict(self)
         return template.render(template=input).strip()
 
 
+# stdfield_str = """
+# {{ template.type }} {{ template.name }} = {{ template.number }};
+# """
 stdfield_str = """
-{{ template.type }} {{ template.name }} = {{ template.number }};
-    """
+{% if template.comments -%}
+// {{ template.comments }}
+{% endif -%}
+{{ template.type }} {{ template.name }} = {{ template.number }}{% if template.json_name %} [json_name = "{{ template.json_name }}"]{% endif %};
+"""
 
 
 @dataclass
@@ -56,13 +81,15 @@ class StdFieldTemplate(BaseTemplate):
     type: str
     name: str
     number: int
+    comments: Optional[str] = None
+    json_name: Optional[str] = None
 
     msg = stdfield_str
 
-
-    def set_number(self, num:int):
+    def set_number(self, num: int) -> int:
         self.number = num
-        return num+1
+        return num + 1
+
 
 enum_str = """enum {{ template.name }} {
     {% for enum in template.listed %}
@@ -101,18 +128,19 @@ class OneOfTemplate(BaseTemplate):
 
     msg = oneof_str
 
+    def set_number(self, num: int):
 
-    def set_number(self, num:int):
-        
         for stdtemp in self.listed:
             num = stdtemp.set_number(num)
         return num
+
 
 message_str = """message {{ template.name }} {
 {% for field in template.fields %}
   {{ field }}
 {% endfor %}
 }"""
+
 
 @dataclass
 class MessageTemplate(BaseTemplate):
@@ -125,13 +153,13 @@ class MessageTemplate(BaseTemplate):
 protofile_str = """
     syntax = "proto3";
 
-    {% for import in imports %}
+    {% for import in template.imports %}
     import "{{ import }}";
     {% endfor %}
 
-    package {{ package }};
+    package {{ template.package }};
 
-    {% for message in messages %}
+    {% for message in template.messages %}
     {{ message }}
     {% endfor %}
 """

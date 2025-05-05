@@ -1,6 +1,6 @@
 import pytest
 
-from makeproto.builder.templates import (
+from makeproto.templates import (
     EnumTemplate,
     KeyNumber,
     MessageTemplate,
@@ -23,6 +23,27 @@ def test_std_field_ok(type, name, number, expected):
 
     field = template.build()
     assert expected in field
+
+
+def test_std_field_ok_comments_json():
+
+    template = StdFieldTemplate("string", "name", 7, "comments1", "jsonalias")
+
+    field = template.build()
+    assert field.startswith("// comments1")
+    assert field.endswith('[json_name = "jsonalias"];')
+
+    template = StdFieldTemplate("string", "name", 7, None, "jsonalias")
+
+    field = template.build()
+    assert field.startswith("string")
+    assert field.endswith('[json_name = "jsonalias"];')
+
+    template = StdFieldTemplate("string", "name", 7, "comments1")
+
+    field = template.build()
+    assert field.startswith("// comments1")
+    assert field.endswith("7;")
 
 
 @pytest.mark.parametrize(

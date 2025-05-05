@@ -1,6 +1,4 @@
-
-
-from makeproto.builder.protobuilder import chain_dependants
+from makeproto.protobuilder import chain_dependants
 
 
 def test_chain(requisition):

@@ -5,8 +5,7 @@ from typing import Annotated, Counter
 
 import pytest
 
-from makeproto.builder.make_msg import get_templates, make_enum_proto_str, make_message_proto_str
-from makeproto.builder.templates import OneOfTemplate
+from makeproto.makemsg import get_templates, make_message_proto_str
 from makeproto.prototypes import (
     BaseMessage,
     Bool,
@@ -19,6 +18,7 @@ from makeproto.prototypes import (
     String,
     UInt32,
 )
+from makeproto.templates import OneOfTemplate
 
 
 class MyEnum(Enum):
@@ -53,8 +53,8 @@ class Hello(BaseMessage):
     n: datetime
     o: Path
     p: Counter[int]
-    y: OneOf[int] = OneOfKey("outro")
-    z: OneOf[bool] = OneOfKey("outro")
+    y: Annotated[OneOf[int], OneOfKey("outro")]
+    z: Annotated[OneOf[bool], OneOfKey("outro")]
 
 
 def test_get_template_ok():
@@ -63,37 +63,38 @@ def test_get_template_ok():
     assert len(templates) == 13
     assert len([x for x in templates if isinstance(x, OneOfTemplate)]) == 2
 
+
 def test_get_template_error():
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="Invalid Field"):
         get_templates(Hello, ignore_error=False)
 
 
 def test_get_template_fail():
     @dataclass
     class Fail(BaseMessage):
-        aça:str
+        aça: str
 
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="proto identifier"):
         get_templates(Fail)
-    
+
+
+def test_get_template_fail2():
+    @dataclass
+    class Fail(BaseMessage):
+        aca: str = "hello"
+
+    with pytest.raises(ValueError, match="Data Field cannot "):
+        get_templates(Fail)
 
 
 def test_msg_template():
 
-    # MYENUM2 = make_enum_proto_str(MyEnum)
-    # ENUM2 = make_enum_proto_str(Enum2)
-
     msg_str = make_message_proto_str(Hello)
 
-    assert msg_str.startswith('message Hello {')
-    # with open("teste.proto", "w", encoding="utf-8") as f:
-        # f.write(f"""syntax = "proto3";\n{MYENUM2}\n{ENUM2}\n{msg_str}""")
-
-def test_msg_template_fail():
-
-    with pytest.raises(TypeError):
-
-        @dataclass
-        class MyS(BaseMessage):
-            a: OneOf[str] = OneOfKey(3)
+    assert msg_str.startswith("message Hello {")
+    assert "string" in msg_str
+    assert "repeated bool" in msg_str
+    assert "map<string, MyEnum>" in msg_str
+    assert "map<int32, bytes>" in msg_str
+    assert msg_str.endswith("}")

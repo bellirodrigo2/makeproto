@@ -1,9 +1,11 @@
+import sys
 from dataclasses import dataclass, fields
-from typing import Annotated
+from typing import Annotated, Any, Optional, get_type_hints
 
 import pytest
 
-from makeproto.builder.make_msg import get_oneof_details
+from makeproto.makemsg import get_oneof_details
+from makeproto.mapclass import dataclass_field_factory
 from makeproto.prototypes import BaseMessage, OneOf, OneOfKey
 
 
@@ -12,8 +14,12 @@ def test_ok():
     class Hello(BaseMessage):
         a: Annotated[OneOf[str], OneOfKey("choice")]
         b: Annotated[OneOf[bytes], 123, "helloworld", OneOfKey("choice")]
-        c: OneOf[int] = OneOfKey("choice")
-        d: OneOf[bool] = OneOfKey("choice")
+        c: Annotated[OneOf[int], OneOfKey("choice")]
+        d: Annotated[OneOf[bool], OneOfKey("choice")]
+
+    hints = get_type_hints(
+        Hello, globalns=vars(sys.modules[Hello.__module__]), include_extras=True
+    )
 
     exp = [
         ("choice", "a", "string"),
@@ -22,7 +28,9 @@ def test_ok():
         ("choice", "d", "bool"),
     ]
     for i, f in enumerate(fields(Hello)):
-        oodetails = get_oneof_details(f)
+        hint: Optional[type[Any]] = hints.get(f.name, None)
+        ftype = dataclass_field_factory(f, hint)
+        oodetails = get_oneof_details(ftype)
         assert oodetails == exp[i]
 
 
@@ -33,12 +41,18 @@ def test_fail_syntax():
         b: Annotated[str, OneOfKey("choice")]
         c: Annotated[OneOf[list[str]], OneOfKey("choice")]
         d: Annotated[OneOf[bytes], 123, "helloworld"]
-        g: OneOf[list[int]] = OneOfKey("foobar")
+        g: Annotated[OneOf[list[int]], OneOfKey("foobar")]
         aa: OneOf[str] = 3
 
+    hints = get_type_hints(
+        Hello, globalns=vars(sys.modules[Hello.__module__]), include_extras=True
+    )
+
     for f in fields(Hello):
+        hint: Optional[type[Any]] = hints.get(f.name, None)
+        ftype = dataclass_field_factory(f, hint)
         with pytest.raises(TypeError):
-            get_oneof_details(f)
+            get_oneof_details(ftype)
 
 
 def test_fail_types():
@@ -47,12 +61,11 @@ def test_fail_types():
         a: Annotated[OneOf[list[bool]], OneOfKey("choice")]
         b: Annotated[OneOf[dict[str, bool]], OneOfKey("choice")]
 
+    hints = get_type_hints(
+        Hello, globalns=vars(sys.modules[Hello.__module__]), include_extras=True
+    )
     for f in fields(Hello):
+        hint: Optional[type[Any]] = hints.get(f.name, None)
+        ftype = dataclass_field_factory(f, hint)
         with pytest.raises(TypeError):
-            get_oneof_details(f)
-
-    with pytest.raises(TypeError):
-
-        @dataclass
-        class Hello2(BaseMessage):
-            b: Annotated[OneOf[dict[str, bool]], OneOfKey(3)]
+            get_oneof_details(ftype)

@@ -160,12 +160,7 @@ class OneOf(BaseField, Generic[T]): ...
 
 
 class OneOfKey(str):
-    def __new__(cls, value):
-        if not isinstance(value, str):
-            raise TypeError(
-                f"{cls.__name__} wait a str, but got {type(value).__name__}"
-            )
-        return str.__new__(cls, value)
+    pass
 
 
 # messagebuilder tem que checar se tem outros nomes
