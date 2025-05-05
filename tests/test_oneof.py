@@ -40,17 +40,19 @@ def test_fail_syntax():
         with pytest.raises(TypeError):
             get_oneof_details(f)
 
+
 def test_fail_types():
     @dataclass
     class Hello(BaseMessage):
         a: Annotated[OneOf[list[bool]], OneOfKey("choice")]
-        b: Annotated[OneOf[dict[str,bool]], OneOfKey("choice")]
+        b: Annotated[OneOf[dict[str, bool]], OneOfKey("choice")]
 
     for f in fields(Hello):
         with pytest.raises(TypeError):
             get_oneof_details(f)
 
     with pytest.raises(TypeError):
+
         @dataclass
         class Hello2(BaseMessage):
-            b: Annotated[OneOf[dict[str,bool]], OneOfKey(3)]
+            b: Annotated[OneOf[dict[str, bool]], OneOfKey(3)]

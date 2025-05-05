@@ -18,9 +18,7 @@ class BaseMessage(BaseProto):
 
 
 class BaseField(BaseProto):
-    @classmethod
-    def python_type(cls):
-        raise NotImplementedError()
+    pass
 
 
 class BaseStringField(str, BaseField):
