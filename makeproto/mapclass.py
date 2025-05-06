@@ -30,6 +30,13 @@ class FuncArg:
     @property
     def args(self) -> tuple[Any, ...]:
         return get_args(self.basetype)
+    
+    def istype(self, tgttype: type) -> bool:
+        try:
+            return self.basetype == tgttype or (issubclass(self.basetype, tgttype))  # type: ignore
+        except TypeError:
+            return False
+
 
     def getinstance(self, tgttype: type[T], default: bool = True) -> Optional[T]:
         if self.extras is not None:
@@ -40,8 +47,8 @@ class FuncArg:
             return self.default
         return None
 
-    def hasinstance(self, tgttype: type) -> bool:
-        return False if self.getinstance(tgttype) is None else True
+    def hasinstance(self, tgttype: type, default: bool = True) -> bool:
+        return False if self.getinstance(tgttype,default) is None else True
 
 
 NO_DEFAULT = object()
@@ -78,8 +85,6 @@ def dataclass_field_factory(
     if get_origin(hint) is Annotated:
         basetype, *extras_ = get_args(hint)
         extras = tuple(extras_)
-
-    # adicionar flag de fallback de basetype para default ?
 
     return FuncArg(
         name=name,

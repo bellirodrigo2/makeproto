@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import enum
 from typing import Generic, Optional, TypeVar
 
@@ -8,9 +9,13 @@ class BaseProto:
         raise NotImplementedError("Subclasses should implement 'prototype'.")
 
 
+
 class BaseMessage(BaseProto):
     __proto_file__: str = ""
     __proto_package__: str = ""
+
+    _oneof:dict[str, set[str]]
+    _selected:dict[str,str]
 
     @classmethod
     def prototype(cls) -> str:

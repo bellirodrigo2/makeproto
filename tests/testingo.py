@@ -1,10 +1,16 @@
-from typing import Annotated, get_origin
+class Base:
+    clsarg:str = 'foobar'
 
-from makeproto.prototypes import OneOf
+class A(Base):...
 
+class B(Base):...
 
-def teste_():
-    OneOf[str]
-    dd = Annotated[OneOf[str], 123]
+A.clsarg = 'hello'
+B.clsarg = 'world'
 
-    get_origin(dd)
+print(A.clsarg)
+
+print(B.clsarg)
+
+a = A()
+print(a.clsarg)

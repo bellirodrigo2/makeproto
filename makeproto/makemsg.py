@@ -33,8 +33,11 @@ def get_type(bt: Optional[type[Any]]) -> Optional[str]:
     if bt is None or not isinstance(bt, type):  # type: ignore
         return None
 
-    if issubclass(bt, BaseProto) or issubclass(bt, enum.Enum):  # type: ignore
+    if issubclass(bt, BaseProto):  # type: ignore
         return bt.prototype()
+
+    if issubclass(bt, enum.Enum):
+        return bt.__name__
 
     def get_default(bt: type[Any]) -> Optional[str]:
 
@@ -154,7 +157,8 @@ def get_templates(
     oneofs: dict[str, list[StdFieldTemplate]] = defaultdict(list)
 
     for arg in args:
-
+        if arg.basetype is None:
+            raise TypeError(f'Arg "{arg.name}" in class "{cls.__name__}" has no type Annotation')
         if arg.has_default:
             raise ValueError(
                 f'Data Field cannot have a default value. Found at "{arg.name}"'

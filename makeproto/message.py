@@ -1,69 +1,64 @@
-from dataclasses import dataclass, field
-from typing import Any, Optional
+from collections import defaultdict
+from enum import Enum
+from typing import Any, Mapping, Optional
 
 from makeproto.makemsg import get_oneof_details
 from makeproto.mapclass import get_dataclass_fields
 from makeproto.prototypes import BaseMessage
 
 
-@dataclass
-class OneOfObj:
-    selected: str
-    args: set[str]
+def define_oneof_fields(cls:type[BaseMessage]):
+    args = get_dataclass_fields(cls)
+    oneof: dict[str, set[str]] = defaultdict(set)
+    for arg in args:
+        oodetails = get_oneof_details(arg)
+        if oodetails:
+            key, fname, _ = oodetails
+            oneof[key].add(fname)
+    setattr(cls,'_oneof', oneof)
 
+def enum_name_factory(enum_cls: type[Enum], value: int) -> str:
+    try:
+        return enum_cls(value).name
+    except ValueError:
+        raise ValueError(f"{value} is not a valid value for {enum_cls.__name__}")
 
-@dataclass
+def define_enums_fields(cls:type[BaseMessage]) -> Mapping[str, type[Enum]]:
+    args = get_dataclass_fields(cls)
+
+    enums:dict[str,type[Enum]] = {}
+    for arg in args:
+        if arg.basetype and arg.istype(Enum):
+            enums[arg.name] = arg.basetype
+    setattr(cls,'_enums_map', enums)
+
 class Message(BaseMessage):
 
-    _oneof: dict[str, OneOfObj] = field(init=False)
-
-    def __new__(cls, *args, **kwargs):
-        instance = super().__new__(
-            cls,
-        )
-        object.__setattr__(instance, "_oneof", {})
-        return instance
-
-    def __post_init__(self):
-
-        args = get_dataclass_fields(self.__class__)
-
-        for arg in args:
-
-            oodetails = get_oneof_details(arg)
-            if oodetails:
-                key, fname, _ = oodetails
-                if key not in self._oneof:
-                    self._oneof[key] = OneOfObj(selected="", args=set([fname]))
-                else:
-                    self._oneof[key].args.add(fname)
-                val = getattr(self, fname)
-                if val is not None:
-                    if self._oneof[key].selected:
-                        raise ValueError(
-                            f'More than one OneOf field set for OneOf: "{key}"'
-                        )
-                    self._oneof[key].selected = fname
+    def __new__(cls: type[Any], *args:Any, **kwargs:Any) -> Any:
+        self = super().__new__(cls)
+        object.__setattr__(self, '_selected', {})
+        return self
 
     def _get_oneof_group(self, name: str):
-        for v in self._oneof.values():
-            if name in v.args:
-                return v
+        for k,v in self._oneof.items():
+            if name in v:
+                return k,v
         return None
 
     def _clear_group(self, name: str):
-        group = self._get_oneof_group(name)
-        if group is not None:
-            for arg in group.args:
+        getgroup = self._get_oneof_group(name)
+        if getgroup is not None:
+            key, group = getgroup
+            for arg in group:
+                if arg == name:
+                    continue
                 object.__setattr__(self, arg, None)
-            group.selected = name
+            self._selected[key] = name
 
     def __setattr__(self, name: str, value: Any) -> None:
-        self._clear_group(name)
-
+        if not name.startswith("_") and value is not None:
+            self._clear_group(name)
         return super().__setattr__(name, value)
 
     def WhichOneof(self, key: str) -> Optional[str]:
-        if key not in self._oneof:
-            return None
-        return self._oneof[key].selected
+        return self._selected.get(key, None)

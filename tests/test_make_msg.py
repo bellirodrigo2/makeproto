@@ -10,7 +10,6 @@ from makeproto.prototypes import (
     BaseMessage,
     Bool,
     Bytes,
-    Enum,
     Fixed64,
     Int32,
     OneOf,
@@ -19,7 +18,7 @@ from makeproto.prototypes import (
     UInt32,
 )
 from makeproto.templates import OneOfTemplate
-
+from enum import Enum
 
 class MyEnum(Enum):
     VALID = 0
