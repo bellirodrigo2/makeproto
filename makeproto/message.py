@@ -1,6 +1,6 @@
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Mapping, Optional
+from typing import Any, Optional
 
 from makeproto.makemsg import get_oneof_details
 from makeproto.mapclass import get_dataclass_fields
@@ -17,20 +17,63 @@ def define_oneof_fields(cls:type[BaseMessage]):
             oneof[key].add(fname)
     setattr(cls,'_oneof', oneof)
 
-def enum_name_factory(enum_cls: type[Enum], value: int) -> str:
-    try:
-        return enum_cls(value).name
-    except ValueError:
-        raise ValueError(f"{value} is not a valid value for {enum_cls.__name__}")
-
-def define_enums_fields(cls:type[BaseMessage]) -> Mapping[str, type[Enum]]:
+def define_needconvert_fields(cls:type[BaseMessage]) -> None:
+    
     args = get_dataclass_fields(cls)
 
-    enums:dict[str,type[Enum]] = {}
+    fields:dict[str,tuple[type[Any], type[Any]]] = {}
+
     for arg in args:
-        if arg.basetype and arg.istype(Enum):
-            enums[arg.name] = arg.basetype
+        origin = arg.origin
+        inner_args=arg.args
+
+        name = arg.name
+        bt = arg.basetype
+        if bt and arg.istype(Enum) or arg.istype(BaseMessage):
+            fields[name] = (object,bt)
+        elif origin:
+            if origin is list and issubclass(inner_args[0],Enum) or issubclass(inner_args[0],BaseMessage):
+                fields[name] = (list, inner_args[0])
+            elif origin is dict:
+                if issubclass(inner_args[1], Enum) or issubclass(inner_args[1],BaseMessage):
+                    fields[name] = (origin, inner_args[1])
+            elif origin is set:
+                fields[name] = (set, bt)
+    setattr(cls,'_needconvert', fields)
+
+
+def define_enums_fields(cls:type[BaseMessage]) -> None:
+    args = get_dataclass_fields(cls)
+
+    enums:dict[str,tuple[type, type[Enum]]] = {}
+
+    for arg in args:
+        origin = arg.origin
+        inner_args=arg.args
+
+        name = arg.name
+        bt = arg.basetype
+        if bt and arg.istype(Enum):
+            enums[name] = bt
+        elif origin in {list,set} and issubclass(inner_args[0],Enum):
+            enums[name] = inner_args[0]
+        elif origin is dict and issubclass(inner_args[1], Enum):
+            enums[name] = inner_args[1]
+    
     setattr(cls,'_enums_map', enums)
+
+def define_set_field(cls:type[BaseMessage])->None:
+
+    args = get_dataclass_fields(cls)
+
+    sets:set[str] = set()
+
+    for arg in args:
+        origin = arg.origin
+        name = arg.name
+        if origin is set:
+            sets.add(name)
+    setattr(cls,'_set_list', sets)
 
 class Message(BaseMessage):
 

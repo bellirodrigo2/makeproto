@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from typing import Annotated
 
+from makeproto.message import define_needconvert_fields
 import pytest
 
+from enum import Enum as StdEnum
 from makeproto.prototypes import (
     BaseMessage,
     Enum,
@@ -14,19 +16,22 @@ from makeproto.prototypes import (
     String,
 )
 
+class TesteMessage(BaseMessage):
+    __proto_file__ = 'teste'
 
 @dataclass
-class ID(BaseMessage):
+class ID(TesteMessage):
     id: int
 
 
 @dataclass
-class User(BaseMessage):
-    __proto_file__ = "file.proto"  # apenas atributo da classe
+class User(TesteMessage):
     id: ID
     name: String
     lastname: str
-    email: Annotated[String, FieldOptions(comments='email comment', json_name='email_field')]
+    email: Annotated[
+        String, FieldOptions(comments="email comment", json_name="email_field")
+    ]
     age: int
     tags: list[String]
     code2: "Code"
@@ -39,10 +44,12 @@ class User(BaseMessage):
 
 
 @dataclass
-class Code(BaseMessage):
+class Code(TesteMessage):
     code: int
-    # code2:'Code'
     pa: "ProductArea"
+    s: set[str]
+    le: list["ProductArea"]
+    me: dict[str, "Enum2"]
 
 
 class ProductArea(Enum):
@@ -51,29 +58,33 @@ class ProductArea(Enum):
     Area3 = 2
 
 
-class Enum2(Enum):
+class Enum2(StdEnum):
     e1 = 0
     e2 = 1
 
 
 @dataclass
-class Product(BaseMessage):
-    __proto_file__ = "file.proto"
+class Product(TesteMessage):
     name: String
     unit_price: dict[String, Float]
     code: Code
     area: ProductArea
     enum2: Enum2
 
-
 @dataclass
-class Requisition(BaseMessage):
-    __proto_file__ = "file.proto"
+class Requisition(TesteMessage):
     user: User
     code: Code
     product: Product
     quantity: Int32
     enum2: Enum2
+
+
+define_needconvert_fields(ID)
+define_needconvert_fields(User)
+define_needconvert_fields(Code)
+define_needconvert_fields(Product)
+define_needconvert_fields(Requisition)
 
 
 @pytest.fixture

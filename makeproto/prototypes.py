@@ -9,13 +9,12 @@ class BaseProto:
         raise NotImplementedError("Subclasses should implement 'prototype'.")
 
 
-
 class BaseMessage(BaseProto):
     __proto_file__: str = ""
     __proto_package__: str = ""
 
-    _oneof:dict[str, set[str]]
-    _selected:dict[str,str]
+    _oneof: dict[str, set[str]]
+    _selected: dict[str, str]
 
     @classmethod
     def prototype(cls) -> str:
@@ -167,10 +166,14 @@ class OneOf(BaseField, Generic[T]): ...
 class OneOfKey(str):
     pass
 
+
 class FieldOptions:
-    def __init__(self, comments:Optional[str]=None, json_name:Optional[str]=None) -> None:
-        self.comments=comments
-        self.json_name=json_name
+    def __init__(
+        self, comments: Optional[str] = None, json_name: Optional[str] = None
+    ) -> None:
+        self.comments = comments
+        self.json_name = json_name
+
 
 # messagebuilder tem que checar se tem outros nomes
 # package nao pode ter mesmo nome de message

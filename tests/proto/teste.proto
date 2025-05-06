@@ -1,10 +1,22 @@
 syntax= "proto3";
+enum ProductArea {
+    Area1 = 0;
+    Area2 = 1;
+    Area3 = 2;
+}
+enum Enum2 {
+    e1 = 0;
+    e2 = 1;
+}
 message ID {
   int64 id = 1;
 }
 message Code {
   int64 code = 1;
   ProductArea pa = 2;
+  repeated string s = 3;
+  repeated ProductArea le = 4;
+  map<string, Enum2> me = 5;
 }
 message User {
   ID id = 1;
@@ -22,15 +34,6 @@ string email = 4 [json_name = "email_field"];
     int64 o3 = 11;
     string o4 = 12;
 }
-}
-enum ProductArea {
-    Area1 = 0;
-    Area2 = 1;
-    Area3 = 2;
-}
-enum Enum2 {
-    e1 = 0;
-    e2 = 1;
 }
 message Product {
   string name = 1;

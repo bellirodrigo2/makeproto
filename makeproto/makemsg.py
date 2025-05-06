@@ -158,7 +158,9 @@ def get_templates(
 
     for arg in args:
         if arg.basetype is None:
-            raise TypeError(f'Arg "{arg.name}" in class "{cls.__name__}" has no type Annotation')
+            raise TypeError(
+                f'Arg "{arg.name}" in class "{cls.__name__}" has no type Annotation'
+            )
         if arg.has_default:
             raise ValueError(
                 f'Data Field cannot have a default value. Found at "{arg.name}"'
@@ -173,7 +175,15 @@ def get_templates(
             if options is not None:
                 comments = options.comments
                 json_name = options.json_name
-            templates.append(StdFieldTemplate(type=str_temp, name=name, number=0,comments=comments, json_name=json_name))
+            templates.append(
+                StdFieldTemplate(
+                    type=str_temp,
+                    name=name,
+                    number=0,
+                    comments=comments,
+                    json_name=json_name,
+                )
+            )
         else:
             oodetail = get_oneof_details(arg, snake_camel_mode)
 

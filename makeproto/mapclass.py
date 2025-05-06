@@ -30,13 +30,12 @@ class FuncArg:
     @property
     def args(self) -> tuple[Any, ...]:
         return get_args(self.basetype)
-    
+
     def istype(self, tgttype: type) -> bool:
         try:
             return self.basetype == tgttype or (issubclass(self.basetype, tgttype))  # type: ignore
         except TypeError:
             return False
-
 
     def getinstance(self, tgttype: type[T], default: bool = True) -> Optional[T]:
         if self.extras is not None:
@@ -48,7 +47,7 @@ class FuncArg:
         return None
 
     def hasinstance(self, tgttype: type, default: bool = True) -> bool:
-        return False if self.getinstance(tgttype,default) is None else True
+        return False if self.getinstance(tgttype, default) is None else True
 
 
 NO_DEFAULT = object()

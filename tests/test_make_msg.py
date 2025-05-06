@@ -20,6 +20,7 @@ from makeproto.prototypes import (
 from makeproto.templates import OneOfTemplate
 from enum import Enum
 
+
 class MyEnum(Enum):
     VALID = 0
     INVALID = 1
