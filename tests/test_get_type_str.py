@@ -141,11 +141,15 @@ def teste_get_type_str_others(class_: type[Any]):
         hint: Optional[type[Any]] = hints.get(f.name, None)
         ftype = dataclass_field_factory(f, hint)
         str_ = get_type_str(ftype)
+        bt = f.type
         if get_origin(f.type) is Annotated:
             args = get_args(f.type)
-            type_ = args[0].prototype()
+            bt = args[0]
         else:
-            type_ = f.type.prototype()
+            if hasattr(bt, 'prototype'):
+                type_ = bt.prototype()
+            else:
+                type_ = bt.__name__
         assert str_ == type_
 
 

@@ -17,6 +17,7 @@ def define_oneof_fields(cls:type[BaseMessage]):
             oneof[key].add(fname)
     setattr(cls,'_oneof', oneof)
 
+
 def define_needconvert_fields(cls:type[BaseMessage]) -> None:
     
     args = get_dataclass_fields(cls)
@@ -41,39 +42,9 @@ def define_needconvert_fields(cls:type[BaseMessage]) -> None:
                 fields[name] = (set, bt)
     setattr(cls,'_needconvert', fields)
 
-
-def define_enums_fields(cls:type[BaseMessage]) -> None:
-    args = get_dataclass_fields(cls)
-
-    enums:dict[str,tuple[type, type[Enum]]] = {}
-
-    for arg in args:
-        origin = arg.origin
-        inner_args=arg.args
-
-        name = arg.name
-        bt = arg.basetype
-        if bt and arg.istype(Enum):
-            enums[name] = bt
-        elif origin in {list,set} and issubclass(inner_args[0],Enum):
-            enums[name] = inner_args[0]
-        elif origin is dict and issubclass(inner_args[1], Enum):
-            enums[name] = inner_args[1]
-    
-    setattr(cls,'_enums_map', enums)
-
-def define_set_field(cls:type[BaseMessage])->None:
-
-    args = get_dataclass_fields(cls)
-
-    sets:set[str] = set()
-
-    for arg in args:
-        origin = arg.origin
-        name = arg.name
-        if origin is set:
-            sets.add(name)
-    setattr(cls,'_set_list', sets)
+def inject_fields(cls:type[BaseMessage]):
+    define_oneof_fields(cls)
+    define_needconvert_fields(cls)
 
 class Message(BaseMessage):
 

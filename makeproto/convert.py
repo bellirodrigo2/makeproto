@@ -1,11 +1,13 @@
 from dataclasses import fields
 from enum import Enum
+from functools import partial
 from pathlib import Path
 import sys
 from types import ModuleType
-from typing import Any,Optional, TypeVar, Union
+from typing import Any, Callable, Iterable,Optional, TypeVar, Union
 import importlib.util
 
+from makeproto.mapclass import get_dataclass_fields
 from makeproto.message import Message
 from makeproto.prototypes import BaseMessage
 # from google.protobuf.descriptor import FieldDescriptor
@@ -31,6 +33,7 @@ def import_py_files_from_folder(folder: Path) -> dict[str, ModuleType]:
 
     return modules
 
+
 class Converter:
 
     def __init__(self, folder:Path) -> None:
@@ -44,22 +47,11 @@ class Converter:
         clss = getattr(mod, cls_name)
         return clss
 
-    def _resolve_convert_to(self,value:Union[Enum,BaseMessage, Any], type_:type[Any]):
-
-        if isinstance(value, Enum):
-            return value.value
-
-        if isinstance(value, BaseMessage):
-            return self.to_proto(value)
-
-        return value
-
-
     def to_proto(self, obj: BaseMessage, case_mode: Optional[str] = None) -> Any:
 
         args = {}
 
-        needconvert:Optional[dict[str, tuple[type,type]]] = getattr(obj, "_needconvert", None)
+        needconvert:Optional[dict[str,Converter.ConvertResolver]] = getattr(obj, "_needconvert", None)
         if needconvert is None:
             raise Exception(f'Need convert not defined for class: "{obj.__class__.__name__}"')
 
@@ -67,19 +59,9 @@ class Converter:
 
             arg = field.name
             value = getattr(obj, arg)
-            convert_tuple = needconvert.get(arg, None)
-            if convert_tuple is not None:
-                origin, type_ = convert_tuple
-                if origin == object:
-                    value = self._resolve_convert_to(value, type_)
-                if origin in {list, set}:
-                    value = [self._resolve_convert_to(v, type_) for v in value]
-                    if origin is set:
-                        value = set(value)
-                elif origin is dict:
-                    values_list = value.values()
-                    values_list_converted = [self._resolve_convert_to(v, type_) for v in values_list]
-                    value = dict(zip(value.keys(), values_list_converted))
+            convert_resolver = needconvert.get(arg, None)
+            if convert_resolver is not None:
+                value = convert_resolver.to_proto(value)
             args[arg] = value
 
         obj_cls = type(obj)
@@ -89,20 +71,9 @@ class Converter:
 
         return proto_class(**args)
 
-
-    def _resolve_convert_from(self, value:Union[int,type[BaseMessage], Any], type_:type[Any]):
-
-        if isinstance(value, int):
-            return type_(value)
-
-        if issubclass(type_, BaseMessage):
-            return self.from_proto(value, type_)
-
-        return value
-
     def from_proto(self,obj: Any, clstype: type[BaseMessage]) -> Message:
 
-        needconvert:Optional[dict[str, tuple[type,type]]] = getattr(clstype, "_needconvert", None)
+        needconvert:Optional[dict[str,Converter.ConvertResolver]] = getattr(clstype, "_needconvert", None)
 
         if needconvert is None:
             raise Exception(f'Need convert not defined for class: "{clstype.__name__}"')
@@ -111,30 +82,134 @@ class Converter:
             name = field.name
             value = getattr(obj,name)
 
-            convert_tuple = needconvert.get(name, None)
-            if convert_tuple is not None:
-                origin, type_ = convert_tuple
-
-                if origin == object:
-                    value = self._resolve_convert_from(value, type_)
-                if origin in {list, set}:
-                    value = [self._resolve_convert_from(v, type_) for v in value]
-                    if origin is set:
-                        value = set(value)
-                elif origin is dict:
-                    values_list = value.values()
-                    values_list_converted = [self._resolve_convert_from(v, type_) for v in values_list]
-                    value = dict(zip(value.keys(), values_list_converted))
-
+            convert_resolver = needconvert.get(name, None)
+            if convert_resolver is not None:
+                value = convert_resolver.from_proto(value)
             args[name] = value
 
         res = clstype(**args)
 
         return res
 
-        # if field.type == FieldDescriptor.TYPE_MESSAGE:
-        #     print(f"{name}: é uma mensagem (classe Protobuf) → {field.message_type.name}")
-        # elif field.type == FieldDescriptor.TYPE_ENUM:
-        #     print(f"{name}: é um enum {field.}")
-        # else:
-        #     print(f"{name}: é um tipo primitivo ")#({FieldDescriptor.Type.Name(field.type)})")
+    class ConvertResolver:
+
+        def __init__(self,from_proto: Callable[[Any],Any],to_proto: Callable[[Any],Any]):
+            self.from_proto = from_proto
+            self.to_proto = to_proto
+
+    def _resolve_single_enum_from(self, value:Any, type_b:type[Enum]):
+        # if not isinstance(value, int):
+            # raise ValueError(f'Resolve Single Enum from should get an "int" as value, but got {type(value)}')
+        return type_b(value)
+
+    def _resolve_single_enum_to(self, value:Any):
+        # if isinstance(value, Enum):
+            # raise ValueError(f'Resolve Single Enum to should get an "Enum" as value, but got {type(value)}')
+        return value.value
+
+    def _resolve_single_basemessage_from(self, value:Any, type_b:type[BaseMessage]):
+        return self.from_proto(value, type_b)
+
+    def _resolve_single_basemessage_to(self, value:Any):
+        return self.to_proto(value)
+
+    def _resolve_list_enum_to(self, value:Any):
+        return [v.value for v in value]
+    
+    def _resolve_list_enum_from(self, value:Any, type_b:type[Enum]):
+        return [type_b(v) for v in value]
+    
+    def _resolve_list_basemessage_to(self, value:Any):
+        return [self.to_proto(v) for v in value]
+    
+    def _resolve_list_basemessage_from(self, value:Any, type_b:type[BaseMessage]):
+        return [self.from_proto(v,type_b) for v in value]
+
+    def _resolve_dict_enum_to(self, value:Any):
+        keys = value.keys()
+        values = value.values()
+
+        resolved_values = [v.value for v in values]
+
+        return dict(zip(keys,resolved_values))
+    
+    def _resolve_dict_enum_from(self, value:Any, type_b:type[Enum]):
+        keys = value.keys()
+        values = value.values()
+
+        resolved_values = [type_b(v) for v in values]
+
+        return dict(zip(keys,resolved_values))
+    
+    def _resolve_dict_basemessage_to(self, value:Any):
+        keys = value.keys()
+        values = value.values()
+
+        resolved_values = [self.to_proto(v) for v in values]
+
+        return dict(zip(keys,resolved_values))
+    
+    def _resolve_dict_basemessage_from(self, value:Any, type_b:type[BaseMessage]):
+        keys = value.keys()
+        values = value.values()
+
+        resolved_values = [self.from_proto(v,type_b) for v in values]
+
+        return dict(zip(keys,resolved_values))
+
+
+    def define_needconvert_fields(self,cls:type[BaseMessage]) -> None:
+
+        args = get_dataclass_fields(cls)
+
+        fields:dict[str,Converter.ConvertResolver] = {}
+
+        for arg in args:
+            origin = arg.origin
+            inner_args=arg.args
+
+            name = arg.name
+            bt = arg.basetype
+
+            if bt and arg.istype(Enum):
+                from_ = partial(self._resolve_single_enum_from,type_b=bt)
+                to_ = self._resolve_single_enum_to
+                fields[name] = Converter.ConvertResolver(from_proto=from_,to_proto=to_)
+
+            elif bt and  arg.istype(BaseMessage):
+                from_ = partial(self._resolve_single_basemessage_from,type_b=bt)
+                to_ = self._resolve_single_basemessage_to
+                fields[name] = Converter.ConvertResolver(from_proto=from_,to_proto=to_)
+
+            elif origin:
+
+                if origin is list:
+                    bt = inner_args[0]
+                    if issubclass(bt,Enum):
+                        from_ = partial(self._resolve_list_enum_from,type_b=bt)
+                        to_ = self._resolve_list_enum_to
+                        fields[name] = Converter.ConvertResolver(from_proto=from_,to_proto=to_)
+
+                    elif issubclass(bt,BaseMessage):
+                        from_ = partial(self._resolve_list_basemessage_from,type_b=bt)
+                        to_ = self._resolve_list_basemessage_to
+                        fields[name] = Converter.ConvertResolver(from_proto=from_,to_proto=to_)
+
+
+                elif origin is dict:
+                    bt = inner_args[1]
+                    if issubclass(inner_args[1], Enum):
+                        from_ = partial(self._resolve_dict_enum_from,type_b=bt)
+                        to_ = self._resolve_dict_enum_to
+                        fields[name] = Converter.ConvertResolver(from_proto=from_,to_proto=to_)
+
+                    elif issubclass(inner_args[1],BaseMessage):
+                        from_ = partial(self._resolve_dict_basemessage_from,type_b=bt)
+                        to_ = self._resolve_dict_basemessage_to
+                        fields[name] = Converter.ConvertResolver(from_proto=from_,to_proto=to_)
+
+                elif origin is set:
+                    def to_set(x:Iterable[Any]) -> set[Any]:
+                        return set(x)
+                    fields[name] = Converter.ConvertResolver(from_proto=to_set,to_proto=to_set)
+        setattr(cls,'_needconvert', fields)

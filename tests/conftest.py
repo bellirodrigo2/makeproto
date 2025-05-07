@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Annotated
 
-from makeproto.message import define_needconvert_fields
+from makeproto.message import define_oneof_fields
 import pytest
 
 from enum import Enum as StdEnum
@@ -80,11 +80,11 @@ class Requisition(TesteMessage):
     enum2: Enum2
 
 
-define_needconvert_fields(ID)
-define_needconvert_fields(User)
-define_needconvert_fields(Code)
-define_needconvert_fields(Product)
-define_needconvert_fields(Requisition)
+define_oneof_fields(ID)
+define_oneof_fields(User)
+define_oneof_fields(Code)
+define_oneof_fields(Product)
+define_oneof_fields(Requisition)
 
 
 @pytest.fixture

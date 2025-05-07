@@ -57,6 +57,12 @@ def test_convert(
     
     converter = Converter(p)
 
+    converter.define_needconvert_fields(ID)
+    converter.define_needconvert_fields(User)
+    converter.define_needconvert_fields(Code)
+    converter.define_needconvert_fields(Product)
+    converter.define_needconvert_fields(Requisition)
+
     # ID Tests
     n = 15
     obj_id = id(id=n)

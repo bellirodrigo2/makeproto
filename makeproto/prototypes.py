@@ -154,7 +154,7 @@ class Bytes(BaseBytesField):
         return "bytes"
 
 
-class Enum(BaseMessage, enum.Enum): ...
+class Enum(enum.Enum): ...
 
 
 T = TypeVar("T")
