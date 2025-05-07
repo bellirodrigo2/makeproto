@@ -43,7 +43,9 @@ class Protobuilder:
 
     def add_service(self,service:Service):
         
-        protofile = self.files.get(service.protofile_name,None)
+        serv_proto_name = service.protofile_name
+        protofile = self.files.get(serv_proto_name,None)
+        serv_name = service.service.name
 
         #there is a protofile with same name
         if protofile is not None:
@@ -52,7 +54,6 @@ class Protobuilder:
                 raise Exception(protofile.protofile_name, protofile.package_name, service.package_name, )
             else:
                 #check if there is a service with same name
-                serv_name = service.service.name
                 services = protofile.services.get(serv_name,None)
                 if services is not None:
                     #if there is and is different raise...
@@ -65,7 +66,9 @@ class Protobuilder:
                 else:
                     protofile.services[serv_name] = service
         else:
-
+            self.files[serv_proto_name] = ProtoFile(protofile_name=serv_proto_name, package_name=service.package_name)
+        
+        messages = self._map_messages(service)
                 
 
 
