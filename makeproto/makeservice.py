@@ -62,7 +62,8 @@ def make_service_template(service_name: str, funcs: Iterable[FuncSignature]) -> 
         )
         method = temp.build().strip("\n")
         methods.append(method)
-
+    #nao pode resolver os fields...tem que ser temp
+    #la no template....resolver os builds
     return ServiceTemplate(name=service_name, fields=methods)
 
 def make_service_proto_str(service_name: str, funcs: Iterable[FuncSignature]) -> str:
