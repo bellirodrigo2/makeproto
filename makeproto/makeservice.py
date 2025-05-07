@@ -46,7 +46,7 @@ class FuncSignature:
             get_error_msg('Request',f'response_type has an origin = "{res_origin}"')
 
 
-def make_service_proto_str(service_name: str, funcs: Iterable[FuncSignature]) -> str:
+def make_service_template(service_name: str, funcs: Iterable[FuncSignature]) -> ServiceTemplate:
 
     methods: list[str] = []
 
@@ -63,4 +63,7 @@ def make_service_proto_str(service_name: str, funcs: Iterable[FuncSignature]) ->
         method = temp.build().strip("\n")
         methods.append(method)
 
-    return ServiceTemplate(name=service_name, fields=methods).build()
+    return ServiceTemplate(name=service_name, fields=methods)
+
+def make_service_proto_str(service_name: str, funcs: Iterable[FuncSignature]) -> str:
+    return make_service_template(service_name,funcs).build()
