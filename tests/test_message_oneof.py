@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Annotated
+
 import pytest
+
 from makeproto.message import Message, inject_fields
 from makeproto.prototypes import BaseMessage, Bool, Int32, OneOf, OneOfKey
 

@@ -1,4 +1,4 @@
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any, Optional, Union, get_args, get_origin
 
 from jinja2 import Environment
@@ -54,6 +54,14 @@ class BaseTemplate(BaseTemplate_):
             return isinstance(value, list) and all(
                 self._is_instance_of_type(v, args[0]) for v in value
             )
+        elif origin is dict:
+            if not isinstance(value, dict):
+                return False
+            keys = value.keys()
+            keybool = all(self._is_instance_of_type(k, args[0]) for k in keys)
+            values = value.keys()
+            valuebool = all(self._is_instance_of_type(v, args[1]) for v in values)
+            return keybool and valuebool
         return False
 
     def set_number(self, num: int) -> int:
@@ -65,9 +73,44 @@ class BaseTemplate(BaseTemplate_):
         return template.render(template=input).strip()
 
 
-# stdfield_str = """
-# {{ template.type }} {{ template.name }} = {{ template.number }};
-# """
+options_str = "[{% for opt in template.options.items() %}{{ opt[0] }} = {{ opt[1] }}{% if not loop.last %}, {% endif %}{% endfor %}]"
+
+allowed_option_message_field = {"deprecated", "json_name", "packed"}
+
+
+@dataclass
+class MsgFieldLevelOptions(BaseTemplate):
+
+    options: dict[str, str] = field(default_factory=dict)
+
+    msg = options_str
+
+    def add_option(self, key: str, value: Union[str, bool]):
+
+        if not isinstance(key, str):
+            raise TypeError("Field Level Option key should be a str")
+
+        if key not in allowed_option_message_field:
+            raise ValueError(
+                f"Option {key} is not allowed for Field Level Options. Options key allowed is {allowed_option_message_field}"
+            )
+
+        if not isinstance(value, str) and not isinstance(value, bool):
+            raise TypeError("Field Level Option value should be a bool or str")
+
+        # FALTA COLCOAR PROTECAO PARA options que sao bool por natureza vs str
+        # bool = packed e deprecated
+        # str = json_name
+
+        # falta colocar "" nos str
+
+        if value is True:
+            value = "true"
+        elif value is False:
+            value = "false"
+        self.options[key] = value
+
+
 stdfield_str = """
 {% if template.comments -%}
 // {{ template.comments }}
@@ -77,12 +120,17 @@ stdfield_str = """
 
 
 @dataclass
-class StdFieldTemplate(BaseTemplate):
+class MsgFieldTemplate(BaseTemplate):
     type: str
     name: str
     number: int
     comments: Optional[str] = None
     json_name: Optional[str] = None
+
+    def build(self) -> str:
+        if self.comments is not None:
+            self.comments = self.comments.lstrip("//")
+        return super().build()
 
     msg = stdfield_str
 
@@ -124,7 +172,7 @@ oneof {{ template.name }} {
 @dataclass
 class OneOfTemplate(BaseTemplate):
     name: str
-    listed: list[StdFieldTemplate]
+    listed: list[MsgFieldTemplate]
 
     msg = oneof_str
 
@@ -135,7 +183,7 @@ class OneOfTemplate(BaseTemplate):
         return num
 
 
-message_str = """message {{ template.name }} {
+block_str = """{{template.block}} {{ template.name }} {
 {% for field in template.fields %}
   {{ field }}
 {% endfor %}
@@ -143,11 +191,66 @@ message_str = """message {{ template.name }} {
 
 
 @dataclass
-class MessageTemplate(BaseTemplate):
+class BlockTemplate(BaseTemplate):
     name: str
     fields: list[str]
+    block: Optional[str] = None
 
-    msg = message_str
+    msg = block_str
+
+    def __post_init__(self):
+        return super().__post_init__()
+
+
+@dataclass
+class MessageTemplate(BlockTemplate):
+    def __post_init__(self):
+        self.block = "message"
+        return super().__post_init__()
+
+
+@dataclass
+class MethodFieldLevelOptions(BaseTemplate): ...
+
+
+mtd_field = """
+{% if template.comments -%}
+// {{ template.comments }}
+{% endif -%}
+rpc {{ template.method_name }}({% if template.client_streaming %}stream {% endif %}{{ template.request }}) returns ({% if template.server_streaming %}stream {% endif %}{{ template.response }}){
+{% for option in template.options %}
+  {{ option }}
+{% endfor %}
+};"""
+
+
+@dataclass
+class MethodFieldTemplate(BaseTemplate):
+    method_name: str
+    request_type: type
+    response_type: type
+    client_streaming: bool
+    server_streaming: bool
+    options: list[str] = field(default_factory=list)
+    request: str = ""
+    response: str = ""
+
+    comments: str = ""
+    msg = mtd_field
+
+    def build(self) -> str:
+        if self.comments is not None:
+            self.comments = self.comments.lstrip("//")
+        self.request = self.request_type.__name__
+        self.response = self.response_type.__name__
+        return super().build()
+
+
+@dataclass
+class ServiceTemplate(BlockTemplate):
+    def __post_init__(self):
+        self.block = "service"
+        return super().__post_init__()
 
 
 protofile_str = """

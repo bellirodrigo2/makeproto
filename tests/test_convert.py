@@ -53,8 +53,8 @@ def test_convert(
     requisition: type[Requisition],
 ):
 
-    p = Path(__file__).parent / 'proto' / 'compiled'
-    
+    p = Path(__file__).parent / "proto" / "compiled"
+
     converter = Converter(p)
 
     converter.define_needconvert_fields(ID)
@@ -93,7 +93,7 @@ def test_convert(
     for item in proto_code.s:  # order is not garanteed
         assert item in s
     assert proto_code.le == [l.value for l in le]
-    assert proto_code.me == {k:v.value for k,v in me.items()}
+    assert proto_code.me == {k: v.value for k, v in me.items()}
 
     cls_code = converter.from_proto(proto_code, code)
     assert cls_code == obj_code
@@ -117,7 +117,7 @@ def test_convert(
     proto_product = converter.to_proto(obj_prod)
     assert proto_product.name == name
 
-    for k,v in proto_product.unit_price.items():
+    for k, v in proto_product.unit_price.items():
         assert f"{v:.2f}" == f"{unit_price[k]:.2f}"
 
     assert proto_product.code.code == obj_prod.code.code
@@ -125,13 +125,12 @@ def test_convert(
     for item in proto_product.code.s:
         assert item in obj_prod.code.s
     assert proto_product.code.le == [l.value for l in obj_prod.code.le]
-    assert proto_product.code.me == {k:v.value for k,v in obj_prod.code.me.items()}
+    assert proto_product.code.me == {k: v.value for k, v in obj_prod.code.me.items()}
 
-    
     cls_product = converter.from_proto(proto_product, Product)
     assert cls_product.name == name
-    
-    for k,v in cls_product.unit_price.items():
+
+    for k, v in cls_product.unit_price.items():
         assert f"{v:.2f}" == f"{unit_price[k]:.2f}"
 
     assert cls_product.code.code == obj_prod.code.code
@@ -176,7 +175,7 @@ def test_convert(
     assert proto_user.o3 == 0
     assert proto_user.o4 == ""
 
-    cls_user = converter.from_proto(proto_user,user)
+    cls_user = converter.from_proto(proto_user, user)
     assert cls_user.id.id == obj_id.id
     assert cls_user.name == name_user
     assert cls_user.lastname == lastname
@@ -213,11 +212,11 @@ def test_convert(
         assert item in obj_user.code2.s
 
     assert proto_req.user.code2.le == [l.value for l in obj_user.code2.le]
-    assert proto_req.user.code2.me == {k:v.value for k,v in obj_user.code2.me.items()}
+    assert proto_req.user.code2.me == {k: v.value for k, v in obj_user.code2.me.items()}
 
     assert proto_req.user.pa == obj_user.pa.value
     assert proto_req.user.o1 == obj_user.o1
-    
+
     assert not proto_req.user.o2 and not obj_user.o2
     assert not proto_req.user.o3 and not obj_user.o3
     assert not proto_req.user.o4 and not obj_user.o4
@@ -241,7 +240,7 @@ def test_convert(
 
     assert cls_req.user.pa == obj_user.pa
     assert cls_req.user.o1 == obj_user.o1
-    
+
     assert not cls_req.user.o2 and not obj_user.o2
     assert not cls_req.user.o3 and not obj_user.o3
     assert not cls_req.user.o4 and not obj_user.o4

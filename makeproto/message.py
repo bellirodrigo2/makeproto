@@ -7,7 +7,7 @@ from makeproto.mapclass import get_dataclass_fields
 from makeproto.prototypes import BaseMessage
 
 
-def define_oneof_fields(cls:type[BaseMessage]):
+def define_oneof_fields(cls: type[BaseMessage]):
     args = get_dataclass_fields(cls)
     oneof: dict[str, set[str]] = defaultdict(set)
     for arg in args:
@@ -15,48 +15,56 @@ def define_oneof_fields(cls:type[BaseMessage]):
         if oodetails:
             key, fname, _ = oodetails
             oneof[key].add(fname)
-    setattr(cls,'_oneof', oneof)
+    setattr(cls, "_oneof", oneof)
 
 
-def define_needconvert_fields(cls:type[BaseMessage]) -> None:
-    
+def define_needconvert_fields(cls: type[BaseMessage]) -> None:
+
     args = get_dataclass_fields(cls)
 
-    fields:dict[str,tuple[type[Any], type[Any]]] = {}
+    fields: dict[str, tuple[type[Any], type[Any]]] = {}
 
     for arg in args:
         origin = arg.origin
-        inner_args=arg.args
+        inner_args = arg.args
 
         name = arg.name
         bt = arg.basetype
         if bt and arg.istype(Enum) or arg.istype(BaseMessage):
-            fields[name] = (object,bt)
+            fields[name] = (object, bt)
         elif origin:
-            if origin is list and issubclass(inner_args[0],Enum) or issubclass(inner_args[0],BaseMessage):
+            if (
+                origin is list
+                and issubclass(inner_args[0], Enum)
+                or issubclass(inner_args[0], BaseMessage)
+            ):
                 fields[name] = (list, inner_args[0])
             elif origin is dict:
-                if issubclass(inner_args[1], Enum) or issubclass(inner_args[1],BaseMessage):
+                if issubclass(inner_args[1], Enum) or issubclass(
+                    inner_args[1], BaseMessage
+                ):
                     fields[name] = (origin, inner_args[1])
             elif origin is set:
                 fields[name] = (set, bt)
-    setattr(cls,'_needconvert', fields)
+    setattr(cls, "_needconvert", fields)
 
-def inject_fields(cls:type[BaseMessage]):
+
+def inject_fields(cls: type[BaseMessage]):
     define_oneof_fields(cls)
     define_needconvert_fields(cls)
 
+
 class Message(BaseMessage):
 
-    def __new__(cls: type[Any], *args:Any, **kwargs:Any) -> Any:
+    def __new__(cls: type[Any], *args: Any, **kwargs: Any) -> Any:
         self = super().__new__(cls)
-        object.__setattr__(self, '_selected', {})
+        object.__setattr__(self, "_selected", {})
         return self
 
     def _get_oneof_group(self, name: str):
-        for k,v in self._oneof.items():
+        for k, v in self._oneof.items():
             if name in v:
-                return k,v
+                return k, v
         return None
 
     def _clear_group(self, name: str):

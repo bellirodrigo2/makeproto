@@ -146,7 +146,7 @@ def teste_get_type_str_others(class_: type[Any]):
             args = get_args(f.type)
             bt = args[0]
         else:
-            if hasattr(bt, 'prototype'):
+            if hasattr(bt, "prototype"):
                 type_ = bt.prototype()
             else:
                 type_ = bt.__name__

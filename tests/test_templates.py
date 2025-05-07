@@ -2,10 +2,12 @@ import pytest
 
 from makeproto.templates import (
     EnumTemplate,
+    MethodFieldTemplate,
+    MsgFieldLevelOptions,
     KeyNumber,
     MessageTemplate,
     OneOfTemplate,
-    StdFieldTemplate,
+    MsgFieldTemplate,
 )
 
 
@@ -19,7 +21,7 @@ from makeproto.templates import (
 )
 def test_std_field_ok(type, name, number, expected):
 
-    template = StdFieldTemplate(type, name, number)
+    template = MsgFieldTemplate(type, name, number)
 
     field = template.build()
     assert expected in field
@@ -27,19 +29,19 @@ def test_std_field_ok(type, name, number, expected):
 
 def test_std_field_ok_comments_json():
 
-    template = StdFieldTemplate("string", "name", 7, "comments1", "jsonalias")
+    template = MsgFieldTemplate("string", "name", 7, "comments1", "jsonalias")
 
     field = template.build()
     assert field.startswith("// comments1")
     assert field.endswith('[json_name = "jsonalias"];')
 
-    template = StdFieldTemplate("string", "name", 7, None, "jsonalias")
+    template = MsgFieldTemplate("string", "name", 7, None, "jsonalias")
 
     field = template.build()
     assert field.startswith("string")
     assert field.endswith('[json_name = "jsonalias"];')
 
-    template = StdFieldTemplate("string", "name", 7, "comments1")
+    template = MsgFieldTemplate("string", "name", 7, "comments1")
 
     field = template.build()
     assert field.startswith("// comments1")
@@ -60,7 +62,7 @@ def test_std_field_ok_comments_json():
 def test_std_field_raise(type, name, number):
 
     with pytest.raises(TypeError):
-        StdFieldTemplate(type, name, number)
+        MsgFieldTemplate(type, name, number)
 
 
 # ----------- ENUM TESTS --------------
@@ -119,7 +121,7 @@ def test_enum_raise2():
     [
         (
             "choice",
-            [StdFieldTemplate("int32", "id", 1), StdFieldTemplate("string", "name", 2)],
+            [MsgFieldTemplate("int32", "id", 1), MsgFieldTemplate("string", "name", 2)],
             "oneof choice",
         ),
     ],
@@ -136,7 +138,7 @@ def test_oneof_ok(name, fields, expected_snippet):
         ("choice", None),
         ("choice", "not-a-list"),
         ("choice", [("int32", "id", 1)]),
-        (None, [StdFieldTemplate("int32", "id", 1)]),
+        (None, [MsgFieldTemplate("int32", "id", 1)]),
     ],
 )
 def test_oneof_raise(name, fields):
@@ -171,3 +173,52 @@ def test_message_ok(name, fields, expected_snippet):
 def test_message_raise(name, fields):
     with pytest.raises(TypeError):
         MessageTemplate(name, fields).build()
+
+
+def test_options():
+
+    opts = MsgFieldLevelOptions()
+    opts.add_option("json_name", "foobar")
+    opts.add_option("deprecated", True)
+    msg = opts.build()
+
+
+def test_method():
+
+    class Request: ...
+
+    class Response: ...
+
+    mtdfield = MethodFieldTemplate(
+        method_name="method1",
+        request_type=Request,
+        response_type=Response,
+        client_streaming=False,
+        server_streaming=False,
+    )
+    method_field = mtdfield.build()
+    assert method_field.startswith("rpc method1(Request) returns (Response){")
+    assert method_field.endswith("};")
+
+    mtdfield.client_streaming = True
+    method_field = mtdfield.build()
+    assert method_field.startswith("rpc method1(stream Request) returns (Response){")
+    assert method_field.endswith("};")
+
+    mtdfield.client_streaming = False
+    mtdfield.server_streaming = True
+    method_field = mtdfield.build()
+    assert method_field.startswith("rpc method1(Request) returns (stream Response){")
+    assert method_field.endswith("};")
+
+    mtdfield.client_streaming = True
+    mtdfield.server_streaming = True
+    method_field = mtdfield.build()
+    assert method_field.startswith(
+        "rpc method1(stream Request) returns (stream Response){"
+    )
+    assert method_field.endswith("};")
+
+    mtdfield.comments = "//foobar"
+    method_field = mtdfield.build()
+    assert method_field.startswith("// foobar")

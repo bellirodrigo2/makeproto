@@ -1,10 +1,10 @@
 from dataclasses import dataclass
+from enum import Enum as StdEnum
 from typing import Annotated
 
-from makeproto.message import define_oneof_fields
 import pytest
 
-from enum import Enum as StdEnum
+from makeproto.message import define_oneof_fields
 from makeproto.prototypes import (
     BaseMessage,
     Enum,
@@ -16,8 +16,10 @@ from makeproto.prototypes import (
     String,
 )
 
+
 class TesteMessage(BaseMessage):
-    __proto_file__ = 'teste'
+    __proto_file__ = "teste"
+
 
 @dataclass
 class ID(TesteMessage):
@@ -70,6 +72,7 @@ class Product(TesteMessage):
     code: Code
     area: ProductArea
     enum2: Enum2
+
 
 @dataclass
 class Requisition(TesteMessage):

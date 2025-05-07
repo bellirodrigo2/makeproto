@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 import enum
 from typing import Generic, Optional, TypeVar
 

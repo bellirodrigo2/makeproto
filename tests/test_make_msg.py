@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from typing import Annotated, Counter
 
@@ -18,7 +19,6 @@ from makeproto.prototypes import (
     UInt32,
 )
 from makeproto.templates import OneOfTemplate
-from enum import Enum
 
 
 class MyEnum(Enum):

@@ -24,7 +24,7 @@ from makeproto.templates import (
     KeyNumber,
     MessageTemplate,
     OneOfTemplate,
-    StdFieldTemplate,
+    MsgFieldTemplate,
 )
 
 
@@ -154,7 +154,7 @@ def get_templates(
     args = get_dataclass_fields(cls, False)
     templates: list[BaseTemplate] = []
 
-    oneofs: dict[str, list[StdFieldTemplate]] = defaultdict(list)
+    oneofs: dict[str, list[MsgFieldTemplate]] = defaultdict(list)
 
     for arg in args:
         if arg.basetype is None:
@@ -176,7 +176,7 @@ def get_templates(
                 comments = options.comments
                 json_name = options.json_name
             templates.append(
-                StdFieldTemplate(
+                MsgFieldTemplate(
                     type=str_temp,
                     name=name,
                     number=0,
@@ -190,7 +190,7 @@ def get_templates(
             if oodetail is not None:
                 key, name_, type_ = oodetail
                 name_ = validate_name(name_, snake_camel_mode)
-                oneofs[key].append(StdFieldTemplate(type_, name_, 0))
+                oneofs[key].append(MsgFieldTemplate(type_, name_, 0))
             else:
                 if not ignore_error:
                     raise ValueError(f"Invalid Field {arg}")
