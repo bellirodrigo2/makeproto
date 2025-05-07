@@ -41,6 +41,9 @@ class Protobuilder:
     
     files:dict[str,ProtoFile]=field(default_factory=dict)
 
+    def _map_messages(self,service:Service):
+        ...
+
     def add_service(self,service:Service):
         
         serv_proto_name = service.protofile_name
@@ -68,7 +71,9 @@ class Protobuilder:
         else:
             self.files[serv_proto_name] = ProtoFile(protofile_name=serv_proto_name, package_name=service.package_name)
         
-        messages = self._map_messages(service)
+
+        #preciso extrair req e resp aqui from service
+        requests = [req for req in service.]
                 
 
 
