@@ -1,1 +1,4 @@
-{% if comment %}{{ comment | format_comment }}{% endif %}{% block content %}{% endblock %}
+{% if comment %}
+{{ comment | format_comment }}
+{% endif %}
+{% block content %}{% endblock %}

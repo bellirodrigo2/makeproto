@@ -1,27 +1,17 @@
 import enum
 import re
 from collections import defaultdict
-from typing import Any, Optional, Sequence
+from typing import Any, Optional, Union
 
 from makeproto.mapclass import FuncArg, get_dataclass_fields
+from makeproto.models import Block, EnumBlock, Field, MessageBlock, OneOfBlock
 from makeproto.prototypes import (
     DEFAULT_PRIMITIVES,
-    BaseMessage,
     BaseProto,
-    Enum,
-    FieldOptions,
+    FieldSpec,
     OneOf,
     OneOfKey,
 )
-from makeproto.templates import (
-    BaseTemplate,
-    EnumTemplate,
-    KeyNumber,
-    MessageTemplate,
-    MsgFieldTemplate,
-    OneOfTemplate,
-)
-
 
 def get_type(bt: Optional[type[Any]]) -> Optional[str]:
 
@@ -81,10 +71,7 @@ def get_type_str(arg: FuncArg) -> Optional[str]:
 
     return get_type(bt)
 
-
-def get_oneof_details(
-    arg: FuncArg, snake_case: bool = False
-) -> Optional[tuple[OneOfKey, str, Any]]:
+def check_oneof_consistency(arg: FuncArg):
 
     oneofkey = arg.getinstance(OneOfKey, False)
 
@@ -98,18 +85,21 @@ def get_oneof_details(
     if oneofkey is None:
         raise TypeError(f"OneOf field: '{arg.name}' has no OneOfKey associated")
 
-    if not isinstance(oneofkey, str):  # type: ignore
-        raise TypeError(
-            f"OneOfKey should be a str. A {type(oneofkey)} was found for arg: {arg.name}."
-        )
+    return oneofkey.key, oneofkey.spec
+    
+def get_oneof_details(arg: FuncArg) -> Optional[tuple[str, str, Any, Optional[FieldSpec]]]:
+
+    oneof = check_oneof_consistency(arg)
+    if oneof is None:
+        return None
+    oneofkey, spec = oneof
 
     args = arg.args
     str_type = get_type(args[0])
     if str_type is None:
         raise TypeError(f"At arg: {arg.name}, OneOf type not allowed: {type(args[0])}")
 
-    name = validate_name(arg.name, snake_case)
-    return oneofkey, name, str_type
+    return oneofkey, arg.name, str_type, spec
 
 
 def to_snake(name: str) -> str:
@@ -124,84 +114,94 @@ def validate_name(name: str, snake_case: bool):
         name = to_snake(name)
     return name
 
-
-def get_templates(
+def make_msgblock(
     cls: type[Any], snake_camel_mode: bool = False, ignore_error: bool = True
-) -> Sequence[BaseTemplate]:
+) -> MessageBlock:
 
     args = get_dataclass_fields(cls, False)
-    templates: list[BaseTemplate] = []
 
-    oneofs: dict[str, list[MsgFieldTemplate]] = defaultdict(list)
+    templates: list[Union[Field,Block[Field]]] = []
+    oneofs: dict[str, list[Field]] = defaultdict(list)
 
+    comment, options = None, None
+
+    counter = 1
     for arg in args:
+
         if arg.basetype is None:
             raise TypeError(
                 f'Arg "{arg.name}" in class "{cls.__name__}" has no type Annotation'
             )
+        
         if arg.has_default:
+            if arg.istype(FieldSpec) and isinstance(arg.default,FieldSpec):
+                comment = arg.default.comment
+                options = arg.default.options
+                continue
             raise ValueError(
                 f'Data Field cannot have a default value. Found at "{arg.name}"'
             )
-
+            
         name = validate_name(arg.name, snake_camel_mode)
 
         str_temp = get_type_str(arg)
+
         if str_temp is not None:
-            options = arg.getinstance(FieldOptions)
-            comments, json_name = None, None
-            if options is not None:
-                comments = options.comments
-                json_name = options.json_name
-            templates.append(
-                MsgFieldTemplate(
-                    type=str_temp,
+            specs = arg.getinstance(FieldSpec,default=False)
+            comment, options = None,None
+            if specs is not None:
+                comment = specs.comment
+                options = specs.options
+            field = Field.make(
                     name=name,
-                    number=0,
-                    comments=comments,
-                    json_name=json_name,
+                    number=counter,
+                    type_=str_temp,
+                    comment= comment,
+                    options=options,
                 )
-            )
+            counter+=1
+            templates.append(field)
         else:
-            oodetail = get_oneof_details(arg, snake_camel_mode)
+            oodetail = get_oneof_details(arg)
 
             if oodetail is not None:
-                key, name_, type_ = oodetail
+                key, name_, type_, specs = oodetail
                 name_ = validate_name(name_, snake_camel_mode)
-                oneofs[key].append(MsgFieldTemplate(type_, name_, 0))
+                comment, options = None,None
+                if specs is not None:
+                    comment = specs.comment
+                    options = specs.options
+                oo_field = Field.make(
+                    name=name_,
+                    number=counter,
+                    type_=type_,
+                    comment= comment,
+                    options=options,
+                )
+                counter+=1
+                oneofs[key].append(oo_field)
             else:
                 if not ignore_error:
                     raise ValueError(f"Invalid Field {arg}")
 
     for k, v in oneofs.items():
         name_ = validate_name(k, snake_camel_mode)
-        ootemp = OneOfTemplate(name=name_, listed=v)
+        ootemp: OneOfBlock = Block.make(name=name_, block_type='oneof',fields=v)
         templates.append(ootemp)
+    
+    block:MessageBlock = Block.make(name=cls.__name__,block_type='message',fields=templates,comment=comment,options=options)
 
-    return templates
+    return block
 
+def make_enumblock(enum:type[enum.Enum])->EnumBlock:
 
-def make_message_proto_str(cls: type[BaseMessage]) -> str:
-    return make_message_template(cls).build()
+    fields: list[Field] = []
 
+    for member in enum:
+        name, value = member.name, member.value
+        if not isinstance(value, int) or value < 0:
+            raise TypeError(f"Enum Values should be positive int only. got {value}")
+        fields.append(Field.make(name,value))
 
-def make_message_template(cls: type[BaseMessage]) -> MessageTemplate:
-    templates = get_templates(
-        cls,
-    )
-    counter = 1
-    for temp in templates:
-        counter = temp.set_number(counter)
-    temp_str = [t.build().strip("\n") for t in templates]
-    return MessageTemplate(name=cls.__name__, fields=temp_str)
-
-
-def make_enum_proto_str(field: type[Enum]) -> str:
-
-    values: list[KeyNumber] = []
-    for e in field:
-        if not isinstance(e.value, int) or e.value < 0:
-            raise TypeError("Enum Values should be positive int only")
-        values.append(KeyNumber(key=e.name, number=e.value))
-
-    return EnumTemplate(name=field.__name__, listed=values).build()
+    enumBlock:EnumBlock = Block.make(name=enum.__name__,block_type='enum', fields=fields)
+    return enumBlock

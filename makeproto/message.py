@@ -13,7 +13,7 @@ def define_oneof_fields(cls: type[BaseMessage]):
     for arg in args:
         oodetails = get_oneof_details(arg)
         if oodetails:
-            key, fname, _ = oodetails
+            key, fname, *_ = oodetails
             oneof[key].add(fname)
     setattr(cls, "_oneof", oneof)
 

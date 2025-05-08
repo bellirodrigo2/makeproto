@@ -1,268 +1,101 @@
-from dataclasses import asdict, dataclass, field
-from typing import Any, Optional, Union, get_args, get_origin
+from dataclasses import asdict
+from pathlib import Path
+from typing import Any, Callable, Union
 
-from jinja2 import Environment
+from jinja2 import Environment, FileSystemLoader
 
-from makeproto.mapclass import FuncArg, get_dataclass_fields
-
-env = Environment(
-    trim_blocks=True,
-    lstrip_blocks=True,
-)
+from makeproto.models import Block, EnumBlock, Field, MessageBlock, Method, OneOfBlock, ProtoFile, ServiceBlock
 
 
-class BaseTemplate_:
-    msg: str
-    listkeys: tuple[str, ...] = ()
-
-
-def check_optional(arg: FuncArg, value: Any) -> bool:
-    args = arg.args
-    if arg.origin is Union and type(None) in args:
-        if value is None or type(value) in args:
-            return True
-        raise TypeError(
-            f'Optional Field "{arg.name}" should have a value None or {arg.basetype}. Found {type(value)}'
+def render_obj(temp: Union[Field, Method]):
+    if isinstance(temp, Field):
+        return field_template.render(**asdict(temp))
+    elif isinstance(temp, Method):  # type: ignore
+        return method_template.render(**asdict(temp))
+    elif isinstance(temp, Block):  # type: ignore
+        rendered_items = [render_obj(f) for f in temp.fields]
+        return block_template.render(
+            comment=temp.comment,
+            template={"block": temp.block_type, "name": temp.name},
+            fields=rendered_items,
+            options=temp.options or {},
         )
-    return False
+    else:
+        raise TypeError(f'Cant Resolve template for obj of class "{type(temp)}"')
+
+GenBlock = Union[EnumBlock, OneOfBlock, MessageBlock, ServiceBlock]
+
+def render_block(block: GenBlock) -> str:
+
+    if not block.fields:
+        raise ValueError(f"Rendering Block '{block.name}' is empty.")
+
+    rendered_items = [render_obj(item) for item in block.fields]
+
+    return block_template.render(
+        comment=block.comment,
+        template={"block": block.block_type, "name": block.name},
+        fields=rendered_items,
+        options=block.options or {},  # Passar as opções para o template
+    )
 
 
-@dataclass
-class BaseTemplate(BaseTemplate_):
-    def __post_init__(self):
+def render_protofile(proto_file: ProtoFile) -> str:
+    rendered_blocks = [render_block(block) for block in proto_file.blocks]
 
-        args = get_dataclass_fields(self.__class__)
-
-        for arg in args:
-            name = arg.name
-            value = getattr(self, name)
-            if check_optional(arg, value):
-                continue
-            if arg.basetype is not None and not self._is_instance_of_type(
-                value, arg.basetype
-            ):
-                raise TypeError(
-                    f"Field '{name}' expected {arg.basetype}, got {type(value)} with value {value}"
-                )
-
-    def _is_instance_of_type(self, value: Any, expected_type: Any) -> bool:
-        origin = get_origin(expected_type)
-        args = get_args(expected_type)
-        if origin is None:
-            return isinstance(value, expected_type)
-        elif origin is list:
-            return isinstance(value, list) and all(
-                self._is_instance_of_type(v, args[0]) for v in value
-            )
-        elif origin is dict:
-            if not isinstance(value, dict):
-                return False
-            keys = value.keys()
-            keybool = all(self._is_instance_of_type(k, args[0]) for k in keys)
-            values = value.keys()
-            valuebool = all(self._is_instance_of_type(v, args[1]) for v in values)
-            return keybool and valuebool
-        return False
-
-    def set_number(self, num: int) -> int:
-        return num
-
-    def build(self) -> str:
-        template = env.from_string(self.__class__.msg)
-        input = asdict(self)
-        return template.render(template=input).strip()
+    return proto_template.render(
+        version=proto_file.version or 3,  # Define a versão 'proto3' como padrão
+        package_name=proto_file.package_name,
+        options=proto_file.options or {},  # Passa as opções globais, se houver
+        blocks=rendered_blocks,  # Passa os blocos renderizados
+    )
 
 
-options_str = "[{% for opt in template.options.items() %}{{ opt[0] }} = {{ opt[1] }}{% if not loop.last %}, {% endif %}{% endfor %}]"
+def make_env(path: Path, filters: dict[str, Callable[..., Any]]):
 
-allowed_option_message_field = {"deprecated", "json_name", "packed"}
-
-
-@dataclass
-class MsgFieldLevelOptions(BaseTemplate):
-
-    options: dict[str, str] = field(default_factory=dict)
-
-    msg = options_str
-
-    def add_option(self, key: str, value: Union[str, bool]):
-
-        if not isinstance(key, str):
-            raise TypeError("Field Level Option key should be a str")
-
-        if key not in allowed_option_message_field:
-            raise ValueError(
-                f"Option {key} is not allowed for Field Level Options. Options key allowed is {allowed_option_message_field}"
-            )
-
-        if not isinstance(value, str) and not isinstance(value, bool):
-            raise TypeError("Field Level Option value should be a bool or str")
-
-        # FALTA COLCOAR PROTECAO PARA options que sao bool por natureza vs str
-        # bool = packed e deprecated
-        # str = json_name
-
-        # falta colocar "" nos str
-
-        if value is True:
-            value = "true"
-        elif value is False:
-            value = "false"
-        self.options[key] = value
+    env = Environment(
+        loader=FileSystemLoader(str(path)), trim_blocks=True, lstrip_blocks=True
+    )
+    for k, v in filters.items():
+        env.filters[k] = v
+    return env
 
 
-stdfield_str = """
-{% if template.comments -%}
-// {{ template.comments }}
-{% endif -%}
-{{ template.type }} {{ template.name }} = {{ template.number }}{% if template.json_name %} [json_name = "{{ template.json_name }}"]{% endif %};
-"""
+TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 
 
-@dataclass
-class MsgFieldTemplate(BaseTemplate):
-    type: str
-    name: str
-    number: int
-    comments: Optional[str] = None
-    json_name: Optional[str] = None
-
-    def build(self) -> str:
-        if self.comments is not None:
-            self.comments = self.comments.lstrip("//")
-        return super().build()
-
-    msg = stdfield_str
-
-    def set_number(self, num: int) -> int:
-        self.number = num
-        return num + 1
+def format_option(item: tuple[str, Union[str, bool]]):
+    key, value = item
+    if isinstance(value, bool):
+        value = "true" if value else "false"
+    elif isinstance(value, str):
+        value = f'"{value}"'
+    return f"{key} = {value}"
 
 
-enum_str = """enum {{ template.name }} {
-    {% for enum in template.listed %}
-    {{ enum.key }} = {{ enum.number }};
-    {% endfor %}
-}"""
+def format_comment(raw_comment: str, line_limit: int = 80) -> str:
+    stripped = raw_comment.strip()
+    if stripped.startswith("//"):
+        return stripped
+    if stripped.startswith("/*") and stripped.endswith("*/"):
+        return stripped
+    if stripped.startswith("/*") and not stripped.endswith("*/"):
+        return stripped + " */"
+    if "\n" not in stripped and len(stripped) <= line_limit:
+        return f"// {stripped}"
+    lines = stripped.splitlines()
+    cleaned_lines = [line.strip() for line in lines]
+    block = "\n".join(f" * {line}" for line in cleaned_lines)
+    return f"/*\n{block}\n */"
 
 
-@dataclass
-class KeyNumber(BaseTemplate):
-    key: str
-    number: int
-
-
-@dataclass
-class EnumTemplate(BaseTemplate):
-    name: str
-    listed: list[KeyNumber]
-
-    msg = enum_str
-
-
-oneof_str = """
-oneof {{ template.name }} {
-    {% for field in template.listed %}
-    {{ field.type }} {{ field.name }} = {{ field.number }};
-    {% endfor %}
+filters: dict[str, Callable[..., Any]] = {
+    "format_option": format_option,
+    "format_comment": format_comment,
 }
-    """
+env = make_env(TEMPLATES_DIR, filters)
 
-
-@dataclass
-class OneOfTemplate(BaseTemplate):
-    name: str
-    listed: list[MsgFieldTemplate]
-
-    msg = oneof_str
-
-    def set_number(self, num: int):
-
-        for stdtemp in self.listed:
-            num = stdtemp.set_number(num)
-        return num
-
-
-block_str = """{{template.block}} {{ template.name }} {
-{% for field in template.fields %}
-  {{ field }}
-{% endfor %}
-}"""
-
-
-@dataclass
-class BlockTemplate(BaseTemplate):
-    name: str
-    fields: list[str]
-    block: Optional[str] = None
-
-    msg = block_str
-
-    def __post_init__(self):
-        return super().__post_init__()
-
-
-@dataclass
-class MessageTemplate(BlockTemplate):
-    def __post_init__(self):
-        self.block = "message"
-        return super().__post_init__()
-
-
-@dataclass
-class MethodFieldLevelOptions(BaseTemplate): ...
-
-
-mtd_field = """
-{% if template.comments -%}
-// {{ template.comments }}
-{% endif -%}
-rpc {{ template.method_name }}({% if template.client_streaming %}stream {% endif %}{{ template.request }}) returns ({% if template.server_streaming %}stream {% endif %}{{ template.response }}){
-{% for option in template.options %}
-  {{ option }}
-{% endfor %}
-};"""
-
-
-@dataclass
-class MethodFieldTemplate(BaseTemplate):
-    method_name: str
-    request_type: type
-    response_type: type
-    client_streaming: bool
-    server_streaming: bool
-    options: list[str] = field(default_factory=list)
-    request: str = ""
-    response: str = ""
-
-    comments: str = ""
-    msg = mtd_field
-
-    def build(self) -> str:
-        if self.comments is not None:
-            self.comments = self.comments.lstrip("//")
-        self.request = self.request_type.__name__
-        self.response = self.response_type.__name__
-        return super().build()
-
-
-@dataclass
-class ServiceTemplate(BlockTemplate):
-    def __post_init__(self):
-        self.block = "service"
-        return super().__post_init__()
-
-
-protofile_str = """
-    syntax = "proto3";
-
-    {% for import in template.imports %}
-    import "{{ import }}";
-    {% endfor %}
-
-    package {{ template.package }};
-
-    {% for message in template.messages %}
-    {{ message }}
-    {% endfor %}
-"""
+field_template = env.get_template("field.j2")
+block_template = env.get_template("block.j2")
+method_template = env.get_template("method.j2")
+proto_template = env.get_template("protofile.j2")

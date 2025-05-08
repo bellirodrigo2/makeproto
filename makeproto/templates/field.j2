@@ -1,4 +1,3 @@
 {% extends "comment.j2" %}
 {% block content %}
-{{ type ~ " " if type }}{{ name }} = {{ number }}{% if options %} [{{ options.items() | map('format_option') | join(', ') }}]{% endif %};
-{% endblock %}
+{{ type ~ " " if type }}{{ name }} = {{ number }}{% if options %} [{{ options.items() | map('format_option') | join(', ') }}]{% endif %};{% endblock %}

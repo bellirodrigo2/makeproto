@@ -1,12 +1,12 @@
 syntax= "proto3";
 enum ProductArea {
-    Area1 = 0;
-    Area2 = 1;
-    Area3 = 2;
+  Area1 = 0;
+  Area2 = 1;
+  Area3 = 2;
 }
 enum Enum2 {
-    e1 = 0;
-    e2 = 1;
+  e1 = 0;
+  e2 = 1;
 }
 message ID {
   int64 id = 1;
@@ -29,10 +29,10 @@ string email = 4 [json_name = "email_field"];
   Code code2 = 7;
   ProductArea pa = 8;
   oneof oo1 {
-    bool o1 = 9;
-    string o2 = 10;
-    int64 o3 = 11;
-    string o4 = 12;
+  bool o1 = 9;
+  string o2 = 10;
+  int64 o3 = 11;
+  string o4 = 12;
 }
 }
 message Product {

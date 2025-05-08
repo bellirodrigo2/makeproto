@@ -1,5 +1,6 @@
+from dataclasses import dataclass
 import enum
-from typing import Generic, Optional, TypeVar
+from typing import Any, Dict, Generic, Optional, TypeVar, Union
 
 
 class BaseProto:
@@ -153,7 +154,7 @@ class Bytes(BaseBytesField):
         return "bytes"
 
 
-DEFAULT_PRIMITIVES = {
+DEFAULT_PRIMITIVES: dict[type[Any], str] = {
     str: String.prototype(),
     int: Int64.prototype(),
     float: Float.prototype(),
@@ -171,17 +172,16 @@ T = TypeVar("T")
 class OneOf(BaseField, Generic[T]): ...
 
 
-class OneOfKey(str):
-    pass
 
+@dataclass(frozen=True)
+class FieldSpec:
+    options:Optional[Dict[str, Union[str, bool]]] = None
+    comment:Optional[str] = None
 
-class FieldOptions:
-    def __init__(
-        self, comments: Optional[str] = None, json_name: Optional[str] = None
-    ) -> None:
-        self.comments = comments
-        self.json_name = json_name
-
+@dataclass
+class OneOfKey:
+    key:str
+    spec:Optional[FieldSpec] = None
 
 # messagebuilder tem que checar se tem outros nomes
 # package nao pode ter mesmo nome de message

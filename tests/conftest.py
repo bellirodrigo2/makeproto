@@ -8,7 +8,7 @@ from makeproto.message import define_oneof_fields
 from makeproto.prototypes import (
     BaseMessage,
     Enum,
-    FieldOptions,
+    FieldSpec,
     Float,
     Int32,
     OneOf,
@@ -32,7 +32,7 @@ class User(TesteMessage):
     name: String
     lastname: str
     email: Annotated[
-        String, FieldOptions(comments="email comment", json_name="email_field")
+        String, FieldSpec(comment="email comment", options={"json_name":"email_field"})
     ]
     age: int
     tags: list[String]

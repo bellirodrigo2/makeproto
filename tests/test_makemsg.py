@@ -1,24 +1,16 @@
+
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Counter
+from typing import Annotated
 
 import pytest
 
-from makeproto.makemsg import get_templates, make_message_proto_str
-from makeproto.prototypes import (
-    BaseMessage,
-    Bool,
-    Bytes,
-    Fixed64,
-    Int32,
-    OneOf,
-    OneOfKey,
-    String,
-    UInt32,
-)
-from makeproto.templates import OneOfTemplate
+from makeproto.makemsg import make_msgblock
+from makeproto.models import Block
+from makeproto.prototypes import BaseMessage, Bool, Bytes, FieldSpec, Fixed64, Int32, OneOf, OneOfKey, String, UInt32
 
 
 class MyEnum(Enum):
@@ -42,32 +34,37 @@ class Hello(BaseMessage):
     c: String
     d: str
     e: UInt32
-    f: Annotated[int, "foobar"]
+    f: Annotated[int, "foobar", FieldSpec(options={'deprecated':True, 'json_name':'f_alias'})]
     g: MyEnum
     h: Annotated[Enum2, "helloworld"]
     i: Annotated[Fixed64, 1234]
     j: list[str]
-    k: Annotated[list[Bool], 1]
+    k: Annotated[list[Bool], 1,FieldSpec(options={'deprecated':True, 'json_name':'k_alias'})]
     l: dict[str, MyEnum]
-    m: Annotated[dict[Int32, Bytes], []]
+    m: Annotated[dict[Int32, Bytes], [], FieldSpec(comment='Comment for "m"')]
     n: datetime
     o: Path
     p: Counter[int]
     y: Annotated[OneOf[int], OneOfKey("outro")]
     z: Annotated[OneOf[bool], OneOfKey("outro")]
 
+    spec:FieldSpec = FieldSpec(comment='Hello Comment', options={'foo':'bar'})
+
 
 def test_get_template_ok():
 
-    templates = get_templates(Hello)
-    assert len(templates) == 13
-    assert len([x for x in templates if isinstance(x, OneOfTemplate)]) == 2
+    block = make_msgblock(Hello)
+    assert len(block.fields) == 13
+    assert len([x for x in block.fields if isinstance(x, Block)]) == 2
+    assert block.name == 'Hello'
+    assert block.comment == 'Hello Comment'
+    assert block.options['foo'] == 'bar'
 
 
 def test_get_template_error():
 
     with pytest.raises(ValueError, match="Invalid Field"):
-        get_templates(Hello, ignore_error=False)
+        make_msgblock(Hello, ignore_error=False)
 
 
 def test_get_template_fail():
@@ -76,7 +73,7 @@ def test_get_template_fail():
         aça: str
 
     with pytest.raises(ValueError, match="proto identifier"):
-        get_templates(Fail)
+        make_msgblock(Fail)
 
 
 def test_get_template_fail2():
@@ -85,16 +82,4 @@ def test_get_template_fail2():
         aca: str = "hello"
 
     with pytest.raises(ValueError, match="Data Field cannot "):
-        get_templates(Fail)
-
-
-def test_msg_template():
-
-    msg_str = make_message_proto_str(Hello)
-
-    assert msg_str.startswith("message Hello {")
-    assert "string" in msg_str
-    assert "repeated bool" in msg_str
-    assert "map<string, MyEnum>" in msg_str
-    assert "map<int32, bytes>" in msg_str
-    assert msg_str.endswith("}")
+        make_msgblock(Fail)

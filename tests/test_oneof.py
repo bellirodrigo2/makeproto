@@ -22,10 +22,10 @@ def test_ok():
     )
 
     exp = [
-        ("choice", "a", "string"),
-        ("choice", "b", "bytes"),
-        ("choice", "c", "int64"),
-        ("choice", "d", "bool"),
+        ("choice", "a", "string", None),
+        ("choice", "b", "bytes",None),
+        ("choice", "c", "int64",None),
+        ("choice", "d", "bool",None),
     ]
     for i, f in enumerate(fields(Hello)):
         hint: Optional[type[Any]] = hints.get(f.name, None)

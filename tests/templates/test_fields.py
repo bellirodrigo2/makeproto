@@ -1,8 +1,7 @@
-from typing import get_args, get_origin
-from makeproto.models import OneOfBlock
+
 import pytest
 
-from makeproto.templates2 import Field, Method, render_obj
+from makeproto.templates import Field, Method, render_obj
 
 # Testes para Field, Field de Enum e Method
 

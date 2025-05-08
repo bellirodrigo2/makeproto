@@ -14,7 +14,7 @@ from typing import (
 T = TypeVar("T")
 
 
-@dataclass(frozen=True)
+@dataclass #(frozen=True)
 class FuncArg:
     name: str
     argtype: Optional[type[Any]]

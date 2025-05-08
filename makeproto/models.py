@@ -1,8 +1,5 @@
-
-
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar, Union
-
 
 T = TypeVar("T")
 
@@ -28,13 +25,14 @@ class Field(HasComment, HasOptions):
         cls,
         name: str,
         number: int,
-        type_: str = '',
-        comment: str = "",
+        type_: str = "",
+        comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool]]] = None,
     ):
         return cls(
-            type=type_, name=name, number=number, comment=comment, options=options or {}
+            type=type_, name=name, number=number, comment=comment or '', options=options or {}
         )
+
 
 @dataclass
 class Method(HasComment, HasOptions):
@@ -65,6 +63,7 @@ class Method(HasComment, HasOptions):
             options=options or {},
         )
 
+
 @dataclass
 class Block(Generic[T], HasComment, HasOptions):
     name: str
@@ -75,19 +74,25 @@ class Block(Generic[T], HasComment, HasOptions):
     def make(
         cls,
         name: str,
-        block_type: Literal['message', 'enum', 'oneof', 'service'],
+        block_type: Literal["message", "enum", "oneof", "service"],
         fields: List[Any],
-        comment: str = "",
+        comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool]]] = None,
     ):
         return cls(
-            name=name, block_type=block_type, fields=fields, comment=comment, options=options or {}
+            name=name,
+            block_type=block_type,
+            fields=fields,
+            comment=comment or '',
+            options=options or {},
         )
-    
-MessageBlock = Block[Field]
+
+
 EnumBlock = Block[Field]
 OneOfBlock = Block[Field]
+MessageBlock = Block[Union[Field, OneOfBlock]]
 ServiceBlock = Block[Method]
+
 
 @dataclass
 class ProtoFile(HasComment, HasOptions):
@@ -99,11 +104,15 @@ class ProtoFile(HasComment, HasOptions):
     def make(
         cls,
         version: int,
-        package_name:str,
+        package_name: str,
         blocks: List[Block[Union[Field, Method]]],
         comment: str = "",
         options: Optional[Dict[str, Union[str, bool]]] = None,
     ):
         return cls(
-            version=str(version), package_name=package_name, blocks=blocks, comment=comment, options=options or {}
+            version=str(version),
+            package_name=package_name,
+            blocks=blocks,
+            comment=comment,
+            options=options or {},
         )
