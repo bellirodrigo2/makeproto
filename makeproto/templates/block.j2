@@ -1,0 +1,10 @@
+{% extends "comment.j2" %}
+{% block content %}
+{{ template.block }} {{ template.name }} {
+{% block fields %}
+{% for field in fields %}
+  {{ field }}
+{% endfor %}
+{% endblock %}
+}
+{% endblock %}
