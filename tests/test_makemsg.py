@@ -54,7 +54,7 @@ class Hello(BaseMessage):
     k: Annotated[
         list[Bool], 1, FieldSpec(options={"deprecated": True, "json_name": "k_alias"})
     ]
-    l: dict[str, MyEnum]
+    li: dict[str, MyEnum]
     m: Annotated[dict[Int32, Bytes], [], FieldSpec(comment='Comment for "m"')]
     n: datetime
     o: Path

@@ -1,7 +1,13 @@
 {% extends "comment.j2" %}
 {% block content %}
 
-syntax = proto{{version if version else '3'}};
+syntax = "proto{{version if version else '3'}}";
+
+{% block imports %}
+  {% for imp in imports or [] %}
+import "{{ imp }}";
+  {% endfor %}
+{% endblock %}
 
 {% if package_name %}package {{ package_name }};{% endif %}
 

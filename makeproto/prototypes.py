@@ -172,9 +172,17 @@ T = TypeVar("T")
 class OneOf(BaseField, Generic[T]): ...
 
 
+class EnumOption:
+    def __init__(self, name: str):
+        self.name = name
+
+    def __str__(self):
+        return self.name
+
+
 @dataclass(frozen=True)
 class FieldSpec:
-    options: Optional[Dict[str, Union[str, bool]]] = None
+    options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None
     comment: Optional[str] = None
 
 
@@ -183,6 +191,3 @@ class OneOfKey:
     key: str
     spec: Optional[FieldSpec] = None
 
-
-# messagebuilder tem que checar se tem outros nomes
-# package nao pode ter mesmo nome de message

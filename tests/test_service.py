@@ -1,38 +1,50 @@
-
-
 from dataclasses import dataclass
+
 import pytest
-from makeproto.makeservice import make_method, check_request_consistency
-from makeproto.prototypes import BaseMessage
+
+from makeproto.makeservice import check_request_consistency, make_method
 from makeproto.models import Method
+from makeproto.prototypes import BaseMessage
+
 
 @dataclass
 class MyRequest(BaseMessage):
     pass
 
+
 @dataclass
 class MyResponse(BaseMessage):
     pass
+
 
 @dataclass
 class NotAMessage:
     pass
 
+
 # Simulações de mensagens válidas
 
-@dataclass
-class Req(BaseMessage): pass
 
 @dataclass
-class Res(BaseMessage): pass
+class Req(BaseMessage):
+    pass
+
+
+@dataclass
+class Res(BaseMessage):
+    pass
+
 
 # Inválido para testes negativos
 
+
 @dataclass
-class InvalidType: pass
+class InvalidType:
+    pass
 
 
 # -------------------- Testes de sucesso --------------------
+
 
 def test_make_method_simple_function():
     def handler(req: Req) -> Res:
@@ -64,6 +76,7 @@ def test_make_method_with_async_generator():
 
 
 # -------------------- Testes de erro --------------------
+
 
 def test_make_method_missing_return_type():
     def handler(req: Req):

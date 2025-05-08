@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar, Union
 
+from makeproto.prototypes import EnumOption
+
 T = TypeVar("T")
 
 
@@ -11,7 +13,7 @@ class HasComment:
 
 @dataclass
 class HasOptions:
-    options: Dict[str, Union[str, bool]]
+    options: Dict[str, Union[str, bool, EnumOption]]
 
 
 @dataclass
@@ -27,7 +29,7 @@ class Field(HasComment, HasOptions):
         number: int,
         type_: str = "",
         comment: Optional[str] = None,
-        options: Optional[Dict[str, Union[str, bool]]] = None,
+        options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
     ):
         return cls(
             type=type_,
@@ -55,7 +57,7 @@ class Method(HasComment, HasOptions):
         request_stream: bool,
         response_stream: bool,
         comment: Optional[str] = None,
-        options: Optional[Dict[str, Union[str, bool]]] = None,
+        options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
     ):
         return cls(
             method_name=method_name,
@@ -63,7 +65,7 @@ class Method(HasComment, HasOptions):
             response_type=response_type,
             request_stream=request_stream,
             response_stream=response_stream,
-            comment=comment or '',
+            comment=comment or "",
             options=options or {},
         )
 
@@ -81,7 +83,7 @@ class Block(Generic[T], HasComment, HasOptions):
         block_type: Literal["message", "enum", "oneof", "service"],
         fields: List[Any],
         comment: Optional[str] = None,
-        options: Optional[Dict[str, Union[str, bool]]] = None,
+        options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
     ):
         return cls(
             name=name,
@@ -102,6 +104,7 @@ ServiceBlock = Block[Method]
 class ProtoFile(HasComment, HasOptions):
     version: str
     package_name: str
+    imports: List[str]
     blocks: List[Block[Union[Field, Method]]]
 
     @classmethod
@@ -109,13 +112,15 @@ class ProtoFile(HasComment, HasOptions):
         cls,
         version: int,
         package_name: str,
+        imports: List[str],
         blocks: List[Block[Union[Field, Method]]],
         comment: str = "",
-        options: Optional[Dict[str, Union[str, bool]]] = None,
+        options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
     ):
         return cls(
             version=str(version),
             package_name=package_name,
+            imports=imports,
             blocks=blocks,
             comment=comment,
             options=options or {},

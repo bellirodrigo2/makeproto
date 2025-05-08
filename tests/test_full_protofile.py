@@ -1,14 +1,18 @@
-import pytest
-from makeproto.models import (
-    Field, Method, Block, ProtoFile,
-)
+from pathlib import Path
+
+
+from makeproto.models import Block, Field, Method, ProtoFile
+from makeproto.prototypes import EnumOption
 from makeproto.templates import render_protofile
+from scripts.compile_proto import compile
 
-# Campos básicos para reutilizar
-field1 = Field.make("id", 1, "int32", comment="Unique ID", options={"deprecated": False})
-field2 = Field.make("name", 2, "string", comment="Full name", options={"required": True})
+# Campos reutilizáveis
+field1 = Field.make(
+    "id", 1, "int32", comment="Unique ID", options={"deprecated": False}
+)
+field2 = Field.make("name", 2, "string", comment="Full name")  # REMOVIDO 'required'
 
-# Enum simples
+# Enum
 enum_block = Block.make(
     name="Status",
     block_type="enum",
@@ -18,22 +22,20 @@ enum_block = Block.make(
         Field.make("INACTIVE", 2),
     ],
     comment="/* Status of a record */",
-    options={"allow_alias": True},
 )
 
-# OneOf dentro da message
+# OneOf block
 oneof_block = Block.make(
     name="contact",
     block_type="oneof",
     fields=[
-        Field.make("email", 3, "string", comment="User email", options={"required": True}),
+        Field.make("email", 3, "string", comment="User email"),  # REMOVIDO 'required'
         Field.make("phone", 4, "string", comment="User phone"),
     ],
     comment="/* Contact info, mutually exclusive */",
-    options={"opt_oneof": "yes"},
 )
 
-# Message com fields e oneof
+# Mensagem User
 message_block = Block.make(
     name="User",
     block_type="message",
@@ -43,10 +45,19 @@ message_block = Block.make(
         oneof_block,
     ],
     comment="/* User entity */",
-    options={"opt_msg": "enabled"},
 )
 
-# Serviço com métodos
+# Mensagem UserRequest — AGORA DEFINIDA
+user_request_block = Block.make(
+    name="UserRequest",
+    block_type="message",
+    fields=[
+        Field.make("user_id", 1, "int32", comment="ID of the user"),
+    ],
+    comment="/* Request message to get a user by ID */",
+)
+
+# Método com idempotency_level — SEM aspas
 method = Method.make(
     method_name="GetUser",
     request_type="UserRequest",
@@ -54,7 +65,9 @@ method = Method.make(
     request_stream=False,
     response_stream=False,
     comment="// Retrieves a user by ID",
-    options={"idempotency_level": "IDEMPOTENT"},
+    options={
+        "idempotency_level": EnumOption("IDEMPOTENT")
+    },  # Atenção: isso só compila se importar descriptor.proto corretamente
 )
 
 service_block = Block.make(
@@ -65,11 +78,12 @@ service_block = Block.make(
     options={"deprecated": False},
 )
 
-# ProtoFile
+# Arquivo Proto
 proto_file = ProtoFile.make(
     version=3,
     package_name="example.v1",
-    blocks=[enum_block, message_block, service_block],
+    imports=["google/api/client.proto"],
+    blocks=[enum_block, user_request_block, message_block, service_block],
     comment="// Proto definitions for user management",
     options={"java_package": "com.example.user.v1"},
 )
@@ -77,43 +91,37 @@ proto_file = ProtoFile.make(
 
 def test_protofile_rendering():
     result = render_protofile(proto_file)
-    
-    # Checks for syntax line
-    assert "syntax = proto3;" in result
 
-    # Package name
+    assert 'syntax = "proto3";' in result
     assert "package example.v1;" in result
-
-    # Global options
     assert 'option java_package = "com.example.user.v1";' in result
 
-    # Enum
     assert "enum Status {" in result
     assert "UNKNOWN = 0;" in result
-    assert "option allow_alias = true;" in result
 
-    # Message
+    assert "message UserRequest {" in result
+    assert "int32 user_id = 1;" in result
+
     assert "message User {" in result
     assert "int32 id = 1 [deprecated = false];" in result
-    assert "string name = 2 [required = true];" in result
-    assert "option opt_msg = \"enabled\";" in result
+    assert "string name = 2;" in result
 
-    # Oneof
     assert "oneof contact {" in result
-    assert "option opt_oneof = \"yes\";" in result
-    assert "string email = 3 [required = true];" in result
+    assert "string email = 3;" in result
     assert "string phone = 4;" in result
 
-    # Service
     assert "service UserService {" in result
     assert "rpc GetUser(UserRequest) returns (User) {" in result
-    assert 'option idempotency_level = "IDEMPOTENT";' in result
+    assert "option idempotency_level = IDEMPOTENT;" in result
 
-    # Comments
     assert "/* User entity */" in result
     assert "/* Contact info, mutually exclusive */" in result
     assert "/* Provides user operations */" in result
     assert "// Retrieves a user by ID" in result
 
-
-# Rodar com: pytest test_protofile_render.py -v
+    folder = Path(__file__).parent / "proto"
+    fname = "teste_full.proto"
+    file = folder / fname
+    with open(file, "w", encoding="utf-8") as f:
+        f.write(result)
+    compile(folder, fname, folder / "compiled")

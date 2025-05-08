@@ -1,13 +1,14 @@
 import enum
 import re
 from collections import defaultdict
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
 from makeproto.mapclass import FuncArg, get_dataclass_fields
 from makeproto.models import Block, EnumBlock, Field, MessageBlock, OneOfBlock
 from makeproto.prototypes import (
     DEFAULT_PRIMITIVES,
     BaseProto,
+    EnumOption,
     FieldSpec,
     OneOf,
     OneOfKey,
@@ -73,7 +74,7 @@ def get_type_str(arg: FuncArg) -> Optional[str]:
     return get_type(bt)
 
 
-def check_oneof_consistency(arg: FuncArg):
+def check_oneof_consistency(arg: FuncArg) -> Optional[tuple[str, Optional[FieldSpec]]]:
 
     oneofkey = arg.getinstance(OneOfKey, False)
 
@@ -111,7 +112,7 @@ def to_snake(name: str) -> str:
     return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
 
 
-def validate_name(name: str, snake_case: bool):
+def validate_name(name: str, snake_case: bool) -> str:
 
     if not name or not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_]*", name):
         raise ValueError(f"Invalid proto identifier: {name}")
@@ -119,7 +120,8 @@ def validate_name(name: str, snake_case: bool):
         name = to_snake(name)
     return name
 
-def check_types(args:Sequence[FuncArg], cls_name:str):
+
+def check_types(args: Sequence[FuncArg], cls_name: str) -> None:
     for arg in args:
 
         if arg.basetype is None:
@@ -127,7 +129,8 @@ def check_types(args:Sequence[FuncArg], cls_name:str):
                 f'Arg "{arg.name}" in class "{cls_name}" has no type Annotation'
             )
 
-def get_spec(args:Sequence[FuncArg]):
+
+def get_spec(args: Sequence[FuncArg]) -> tuple[Optional[str], Optional[Dict[str, Union[str, bool,EnumOption]]]]:
 
     comment, options = None, None
     for arg in args:
@@ -138,7 +141,7 @@ def get_spec(args:Sequence[FuncArg]):
                 options = arg.default.options
                 break
     return comment, options
-    
+
 
 def make_msgblock(
     cls: type[Any], snake_camel_mode: bool = False, ignore_error: bool = True
@@ -147,7 +150,7 @@ def make_msgblock(
     args = get_dataclass_fields(cls, False)
 
     check_types(args, cls.__name__)
-    
+
     templates: list[Union[Field, Block[Field]]] = []
     oneofs: dict[str, list[Field]] = defaultdict(list)
 
@@ -205,9 +208,9 @@ def make_msgblock(
         name_ = validate_name(k, snake_camel_mode)
         ootemp: OneOfBlock = Block.make(name=name_, block_type="oneof", fields=v)
         templates.append(ootemp)
-    
+
     comment, options = get_spec(args)
-    
+
     block: MessageBlock = Block.make(
         name=cls.__name__,
         block_type="message",

@@ -1,6 +1,6 @@
 from dataclasses import asdict
 from pathlib import Path
-from typing import Any, Callable, Union
+from typing import Any, Callable, Dict, Union
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -14,9 +14,10 @@ from makeproto.models import (
     ProtoFile,
     ServiceBlock,
 )
+from makeproto.prototypes import EnumOption
 
 
-def render_obj(temp: Union[Field, Method]):
+def render_obj(temp: Union[Field, Method]) -> str:
     if isinstance(temp, Field):
         return field_template.render(**asdict(temp))
     elif isinstance(temp, Method):  # type: ignore
@@ -41,47 +42,54 @@ def render_block(block: GenBlock) -> str:
     if not block.fields:
         raise ValueError(f"Rendering Block '{block.name}' is empty.")
 
-    rendered_items = [render_obj(item) for item in block.fields]
+    rendered_items = [render_obj(item) for item in block.fields]  # type: ignore
 
     return block_template.render(
         comment=block.comment,
         template={"block": block.block_type, "name": block.name},
         fields=rendered_items,
-        options=block.options or {},  # Passar as opções para o template
+        options=block.options or {},
     )
 
 
 def render_protofile(proto_file: ProtoFile) -> str:
-    rendered_blocks = [render_block(block) for block in proto_file.blocks]
+    rendered_blocks = [render_block(block) for block in proto_file.blocks]  # type: ignore
 
     return proto_template.render(
-        version=proto_file.version or 3,  # Define a versão 'proto3' como padrão
+        version=proto_file.version or 3,
         package_name=proto_file.package_name,
-        options=proto_file.options or {},  # Passa as opções globais, se houver
-        blocks=rendered_blocks,  # Passa os blocos renderizados
+        options=proto_file.options or {},
+        blocks=rendered_blocks,
     )
 
 
-def make_env(path: Path, filters: dict[str, Callable[..., Any]]):
+def make_env(path: Path, filters: dict[str, Callable[..., Any]]) -> Environment:
 
     env = Environment(
         loader=FileSystemLoader(str(path)), trim_blocks=True, lstrip_blocks=True
     )
     for k, v in filters.items():
-        env.filters[k] = v
+        env.filters[k] = v # type: ignore
     return env
 
 
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 
 
-def format_option(item: tuple[str, Union[str, bool]]):
+def format_option(item: Dict[str, Union[str, bool, EnumOption]]) -> str:
+
     key, value = item
-    if isinstance(value, bool):
-        value = "true" if value else "false"
-    elif isinstance(value, str):
-        value = f'"{value}"'
-    return f"{key} = {value}"
+
+    if isinstance(value, bool):  # type: ignore
+        val_txt = "true" if value else "false"
+    elif isinstance(value, (int, float)):
+        val_txt = str(value)
+    elif isinstance(value, EnumOption):
+        val_txt = str(value)  # sem aspas
+    else:
+        val_txt = f'"{value}"'  # string literal
+
+    return f"{key} = {val_txt}"
 
 
 def format_comment(raw_comment: str, line_limit: int = 80) -> str:

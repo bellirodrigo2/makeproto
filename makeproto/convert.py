@@ -109,7 +109,7 @@ class Converter:
 
         return proto_class(**args)
 
-    def from_proto(self, obj: Any, clstype: type[BaseMessage]) -> Message:
+    def from_proto(self, obj: Any, clstype: type[BaseMessage]) -> BaseMessage:
 
         needconvert: Optional[dict[str, Converter.ConvertResolver]] = getattr(
             clstype, "_needconvert", None
@@ -143,35 +143,35 @@ class Converter:
             self.to_proto = to_proto
             self.expected_to_proto = expected_to_proto
 
-    def _resolve_single_enum_from(self, value: Any, type_b: type[Enum]):
+    def _resolve_single_enum_from(self, value: Any, type_b: type[Enum]) -> Enum:
         # if not isinstance(value, int):
         # raise ValueError(f'Resolve Single Enum from should get an "int" as value, but got {type(value)}')
         return type_b(value)
 
-    def _resolve_single_enum_to(self, value: Any):
+    def _resolve_single_enum_to(self, value: Any) -> Any:
         # if isinstance(value, Enum):
         # raise ValueError(f'Resolve Single Enum to should get an "Enum" as value, but got {type(value)}')
         return value.value
 
-    def _resolve_single_basemessage_from(self, value: Any, type_b: type[BaseMessage]):
+    def _resolve_single_basemessage_from(self, value: Any, type_b: type[BaseMessage]) -> BaseMessage:
         return self.from_proto(value, type_b)
 
-    def _resolve_single_basemessage_to(self, value: Any):
+    def _resolve_single_basemessage_to(self, value: Any) -> Any:
         return self.to_proto(value)
 
-    def _resolve_list_enum_to(self, value: Any):
+    def _resolve_list_enum_to(self, value: Any) -> list[Any]:
         return [v.value for v in value]
 
-    def _resolve_list_enum_from(self, value: Any, type_b: type[Enum]):
+    def _resolve_list_enum_from(self, value: Any, type_b: type[Enum]) -> list[Enum]:
         return [type_b(v) for v in value]
 
-    def _resolve_list_basemessage_to(self, value: Any):
+    def _resolve_list_basemessage_to(self, value: Any) -> list[Any]:
         return [self.to_proto(v) for v in value]
 
     def _resolve_list_basemessage_from(self, value: Any, type_b: type[BaseMessage]):
         return [self.from_proto(v, type_b) for v in value]
 
-    def _resolve_dict_enum_to(self, value: Any):
+    def _resolve_dict_enum_to(self, value: Any) -> dict[Any, Any]:
         keys = value.keys()
         values = value.values()
 
@@ -179,7 +179,7 @@ class Converter:
 
         return dict(zip(keys, resolved_values))
 
-    def _resolve_dict_enum_from(self, value: Any, type_b: type[Enum]):
+    def _resolve_dict_enum_from(self, value: Any, type_b: type[Enum]) -> dict[Any, Enum]:
         keys = value.keys()
         values = value.values()
 
@@ -187,7 +187,7 @@ class Converter:
 
         return dict(zip(keys, resolved_values))
 
-    def _resolve_dict_basemessage_to(self, value: Any):
+    def _resolve_dict_basemessage_to(self, value: Any) -> dict[Any, Any]:
         keys = value.keys()
         values = value.values()
 
@@ -195,7 +195,7 @@ class Converter:
 
         return dict(zip(keys, resolved_values))
 
-    def _resolve_dict_basemessage_from(self, value: Any, type_b: type[BaseMessage]):
+    def _resolve_dict_basemessage_from(self, value: Any, type_b: type[BaseMessage]) -> dict[Any, BaseMessage]:
         keys = value.keys()
         values = value.values()
 

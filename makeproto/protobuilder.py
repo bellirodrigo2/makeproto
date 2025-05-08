@@ -130,9 +130,9 @@ class ProtoBuilder:
 
         file_name = self.add_message(msgtype)
 
-        for field in fields(msgtype):
-            if isinstance(field.type, type) and issubclass(field.type, BaseMessage):
-                fname = field.type.__proto_file__
+        for f in fields(msgtype):
+            if isinstance(f.type, type) and issubclass(f.type, BaseMessage):
+                fname = f.type.__proto_file__
                 if (
                     fname != file_name
                     and fname not in self.protofiles[file_name].imports
@@ -150,9 +150,9 @@ def chain_dependants(msgtype: type[BaseMessage]) -> set[type[BaseMessage]]:
 
     bm = set([msgtype])
 
-    for field in fields(msgtype):
+    for f in fields(msgtype):
 
-        ftype = field.type
+        ftype = f.type
         if get_origin(ftype) is Annotated:
             ftype = get_args(ftype)[0]
 

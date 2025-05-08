@@ -1,5 +1,4 @@
 from collections import defaultdict
-from enum import Enum
 from typing import Any, Optional
 
 from makeproto.makemsg import get_oneof_details
@@ -7,7 +6,7 @@ from makeproto.mapclass import get_dataclass_fields
 from makeproto.prototypes import BaseMessage
 
 
-def define_oneof_fields(cls: type[BaseMessage]):
+def define_oneof_fields(cls: type[BaseMessage]) -> None:
     args = get_dataclass_fields(cls)
     oneof: dict[str, set[str]] = defaultdict(set)
     for arg in args:
@@ -25,13 +24,13 @@ class Message(BaseMessage):
         object.__setattr__(self, "_selected", {})
         return self
 
-    def _get_oneof_group(self, name: str):
+    def _get_oneof_group(self, name: str) -> Optional[tuple[str, set[str]]]:
         for k, v in self._oneof.items():
             if name in v:
                 return k, v
         return None
 
-    def _clear_group(self, name: str):
+    def _clear_group(self, name: str) -> None:
         getgroup = self._get_oneof_group(name)
         if getgroup is not None:
             key, group = getgroup

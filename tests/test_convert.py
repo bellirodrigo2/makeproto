@@ -46,7 +46,7 @@ def test_compile_cls(
     file = folder / fname
     with open(file, "w", encoding="utf-8") as f:
         f.write(protofile)
-    compile(folder, fname, folder / "compiled")
+    assert compile(folder, fname, folder / "compiled")
 
 
 # def test_convert(
