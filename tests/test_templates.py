@@ -2,12 +2,12 @@ import pytest
 
 from makeproto.templates import (
     EnumTemplate,
-    MethodFieldTemplate,
-    MsgFieldLevelOptions,
     KeyNumber,
     MessageTemplate,
-    OneOfTemplate,
+    MethodFieldTemplate,
+    MsgFieldLevelOptions,
     MsgFieldTemplate,
+    OneOfTemplate,
 )
 
 

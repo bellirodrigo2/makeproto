@@ -5,26 +5,21 @@ from typing import Any, Optional, Sequence
 
 from makeproto.mapclass import FuncArg, get_dataclass_fields
 from makeproto.prototypes import (
-    BaseField,
+    DEFAULT_PRIMITIVES,
     BaseMessage,
     BaseProto,
-    Bool,
-    Bytes,
     Enum,
     FieldOptions,
-    Float,
-    Int64,
     OneOf,
     OneOfKey,
-    String,
 )
 from makeproto.templates import (
     BaseTemplate,
     EnumTemplate,
     KeyNumber,
     MessageTemplate,
-    OneOfTemplate,
     MsgFieldTemplate,
+    OneOfTemplate,
 )
 
 
@@ -39,24 +34,7 @@ def get_type(bt: Optional[type[Any]]) -> Optional[str]:
     if issubclass(bt, enum.Enum):
         return bt.__name__
 
-    def get_default(bt: type[Any]) -> Optional[str]:
-
-        bclass: Optional[type[BaseField]] = None
-        if issubclass(bt, int):
-            bclass = Int64
-        if issubclass(bt, float):
-            bclass = Float
-        if issubclass(bt, str):
-            bclass = String
-        if issubclass(bt, bytes):
-            bclass = Bytes
-        if issubclass(bt, bool):
-            bclass = Bool
-        if bclass is not None:
-            return bclass.prototype()
-        return None
-
-    return get_default(bt)
+    return DEFAULT_PRIMITIVES.get(bt, None)
 
 
 allowed_map_key = [
@@ -206,7 +184,8 @@ def get_templates(
 def make_message_proto_str(cls: type[BaseMessage]) -> str:
     return make_message_template(cls).build()
 
-def make_message_template(cls: type[BaseMessage])->MessageTemplate:
+
+def make_message_template(cls: type[BaseMessage]) -> MessageTemplate:
     templates = get_templates(
         cls,
     )

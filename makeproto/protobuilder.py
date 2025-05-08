@@ -2,83 +2,89 @@ from dataclasses import dataclass, field, fields
 from logging import warning
 from typing import Annotated, Any, Optional, get_args, get_origin
 
-from makeproto.makeservice import FuncSignature
 from makeproto.prototypes import BaseMessage, Enum
 from makeproto.templates import EnumTemplate, MessageTemplate, ServiceTemplate
 
+
 @dataclass
 class ProtoModule:
-    protofile_name:str
-    package_name:Optional[str]
+    protofile_name: str
+    package_name: Optional[str]
 
     def __post_init__(self):
         self.protofile_name = f'{self.protofile_name.rstrip(".proto")}.proto'
+
 
 @dataclass
 class Service(ProtoModule):
     service: ServiceTemplate
 
+
 @dataclass
 class Message(ProtoModule):
     msg: MessageTemplate
+
 
 @dataclass
 class EnumMessage(ProtoModule):
     msg: EnumTemplate
 
-@dataclass 
+
+@dataclass
 class ProtoFile(ProtoModule):
 
-    imports:list[str] = field(default_factory=list)
-    options:list[str] = field(default_factory=list)
+    imports: list[str] = field(default_factory=list)
+    options: list[str] = field(default_factory=list)
 
-    services:dict[str,Service] = field(default_factory=dict)
+    services: dict[str, Service] = field(default_factory=dict)
     messages: list[Message] = field(default_factory=list)
     enums: list[EnumMessage] = field(default_factory=list)
 
+
 @dataclass
 class Protobuilder:
-    
-    files:dict[str,ProtoFile]=field(default_factory=dict)
 
-    def _map_messages(self,service:Service):
-        ...
+    files: dict[str, ProtoFile] = field(default_factory=dict)
 
-    def add_service(self,service:Service):
-        
+    def _map_messages(self, service: Service): ...
+
+    def add_service(self, service: Service):
+
         serv_proto_name = service.protofile_name
-        protofile = self.files.get(serv_proto_name,None)
+        protofile = self.files.get(serv_proto_name, None)
         serv_name = service.service.name
 
-        #there is a protofile with same name
+        # there is a protofile with same name
         if protofile is not None:
-            #check if package name is consistent
-            if protofile.package_name != service.package_name: #tem que ser igual....pensar se vale a pena se um for None, deixar ok
-                raise Exception(protofile.protofile_name, protofile.package_name, service.package_name, )
+            # check if package name is consistent
+            if (
+                protofile.package_name != service.package_name
+            ):  # tem que ser igual....pensar se vale a pena se um for None, deixar ok
+                raise Exception(
+                    protofile.protofile_name,
+                    protofile.package_name,
+                    service.package_name,
+                )
             else:
-                #check if there is a service with same name
-                services = protofile.services.get(serv_name,None)
+                # check if there is a service with same name
+                services = protofile.services.get(serv_name, None)
                 if services is not None:
-                    #if there is and is different raise...
+                    # if there is and is different raise...
                     if services != service:
                         raise Exception
                     else:
-                        #warning if trying to add same service twice
-                        warning('')
+                        # warning if trying to add same service twice
+                        warning("")
                         ...
                 else:
                     protofile.services[serv_name] = service
         else:
-            self.files[serv_proto_name] = ProtoFile(protofile_name=serv_proto_name, package_name=service.package_name)
-        
+            self.files[serv_proto_name] = ProtoFile(
+                protofile_name=serv_proto_name, package_name=service.package_name
+            )
 
-        #preciso extrair req e resp aqui from service
-        requests = [req for req in service.]
-                
-
-
-
-
+        # preciso extrair req e resp aqui from service
+        # requests = [req for req in service.]
 
 
 @dataclass

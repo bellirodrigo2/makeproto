@@ -153,6 +153,15 @@ class Bytes(BaseBytesField):
         return "bytes"
 
 
+DEFAULT_PRIMITIVES = {
+    str: String.prototype(),
+    int: Int64.prototype(),
+    float: Float.prototype(),
+    bytes: Bytes.prototype(),
+    bool: Bool.prototype(),
+}
+
+
 class Enum(enum.Enum): ...
 
 
