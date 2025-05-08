@@ -1,7 +1,7 @@
 import enum
 import re
 from collections import defaultdict
-from typing import Any, Optional, Union
+from typing import Any, Optional, Sequence, Union
 
 from makeproto.mapclass import FuncArg, get_dataclass_fields
 from makeproto.models import Block, EnumBlock, Field, MessageBlock, OneOfBlock
@@ -119,6 +119,26 @@ def validate_name(name: str, snake_case: bool):
         name = to_snake(name)
     return name
 
+def check_types(args:Sequence[FuncArg], cls_name:str):
+    for arg in args:
+
+        if arg.basetype is None:
+            raise TypeError(
+                f'Arg "{arg.name}" in class "{cls_name}" has no type Annotation'
+            )
+
+def get_spec(args:Sequence[FuncArg]):
+
+    comment, options = None, None
+    for arg in args:
+
+        if arg.has_default:
+            if arg.istype(FieldSpec) and isinstance(arg.default, FieldSpec):
+                comment = arg.default.comment
+                options = arg.default.options
+                break
+    return comment, options
+    
 
 def make_msgblock(
     cls: type[Any], snake_camel_mode: bool = False, ignore_error: bool = True
@@ -126,24 +146,15 @@ def make_msgblock(
 
     args = get_dataclass_fields(cls, False)
 
+    check_types(args, cls.__name__)
+    
     templates: list[Union[Field, Block[Field]]] = []
     oneofs: dict[str, list[Field]] = defaultdict(list)
-
-    comment, options = None, None
 
     counter = 1
     for arg in args:
 
-        if arg.basetype is None:
-            raise TypeError(
-                f'Arg "{arg.name}" in class "{cls.__name__}" has no type Annotation'
-            )
-
-        if arg.has_default:
-            if arg.istype(FieldSpec) and isinstance(arg.default, FieldSpec):
-                comment = arg.default.comment
-                options = arg.default.options
-                continue
+        if arg.has_default and not arg.istype(FieldSpec):
             raise ValueError(
                 f'Data Field cannot have a default value. Found at "{arg.name}"'
             )
@@ -194,7 +205,9 @@ def make_msgblock(
         name_ = validate_name(k, snake_camel_mode)
         ootemp: OneOfBlock = Block.make(name=name_, block_type="oneof", fields=v)
         templates.append(ootemp)
-
+    
+    comment, options = get_spec(args)
+    
     block: MessageBlock = Block.make(
         name=cls.__name__,
         block_type="message",

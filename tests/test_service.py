@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 import pytest
-from makeproto.makeservice2 import make_method, check_request_consistency
+from makeproto.makeservice import make_method, check_request_consistency
 from makeproto.prototypes import BaseMessage
 from makeproto.models import Method
 

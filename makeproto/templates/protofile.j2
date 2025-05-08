@@ -3,7 +3,7 @@
 
 syntax = proto{{version if version else '3'}};
 
-{% if package %}package {{ package_name }};{% endif %}
+{% if package_name %}package {{ package_name }};{% endif %}
 
 {% block options %}
     {% for key, val in (options or {}).items() %}

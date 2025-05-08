@@ -3,7 +3,7 @@ from typing import Annotated
 
 import pytest
 
-from makeproto.message import Message, inject_fields
+from makeproto.message import Message, define_oneof_fields
 from makeproto.prototypes import BaseMessage, Bool, Int32, OneOf, OneOfKey
 
 
@@ -29,8 +29,8 @@ class Message3(Message2):
     e: Annotated[OneOf[Bool], [], OneOfKey("outro")]
 
 
-inject_fields(Message1)
-inject_fields(Message3)
+define_oneof_fields(Message1)
+define_oneof_fields(Message3)
 
 
 @pytest.mark.parametrize("MSG", [Message1, Message3])
@@ -85,7 +85,7 @@ class MessageWithExtra(Message):
     x: int = 0
 
 
-inject_fields(MessageWithExtra)
+define_oneof_fields(MessageWithExtra)
 
 
 def test_field_not_in_oneof_doesnt_affect_selected():
@@ -118,7 +118,7 @@ class ComplexMessage(BaseMessageWithExtra):
     y: Annotated[OneOf[str], OneOfKey("mix")]
 
 
-inject_fields(ComplexMessage)
+define_oneof_fields(ComplexMessage)
 
 
 def test_multiple_inheritance_oneof():
