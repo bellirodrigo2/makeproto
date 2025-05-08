@@ -32,7 +32,7 @@ class User(TesteMessage):
     name: String
     lastname: str
     email: Annotated[
-        String, FieldSpec(comment="email comment", options={"json_name":"email_field"})
+        String, FieldSpec(comment="email comment", options={"json_name": "email_field"})
     ]
     age: int
     tags: list[String]

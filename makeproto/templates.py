@@ -4,7 +4,16 @@ from typing import Any, Callable, Union
 
 from jinja2 import Environment, FileSystemLoader
 
-from makeproto.models import Block, EnumBlock, Field, MessageBlock, Method, OneOfBlock, ProtoFile, ServiceBlock
+from makeproto.models import (
+    Block,
+    EnumBlock,
+    Field,
+    MessageBlock,
+    Method,
+    OneOfBlock,
+    ProtoFile,
+    ServiceBlock,
+)
 
 
 def render_obj(temp: Union[Field, Method]):
@@ -23,7 +32,9 @@ def render_obj(temp: Union[Field, Method]):
     else:
         raise TypeError(f'Cant Resolve template for obj of class "{type(temp)}"')
 
+
 GenBlock = Union[EnumBlock, OneOfBlock, MessageBlock, ServiceBlock]
+
 
 def render_block(block: GenBlock) -> str:
 

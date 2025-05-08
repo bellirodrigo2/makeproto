@@ -30,7 +30,11 @@ class Field(HasComment, HasOptions):
         options: Optional[Dict[str, Union[str, bool]]] = None,
     ):
         return cls(
-            type=type_, name=name, number=number, comment=comment or '', options=options or {}
+            type=type_,
+            name=name,
+            number=number,
+            comment=comment or "",
+            options=options or {},
         )
 
 
@@ -50,7 +54,7 @@ class Method(HasComment, HasOptions):
         response_type: str,
         request_stream: bool,
         response_stream: bool,
-        comment: str = "",
+        comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool]]] = None,
     ):
         return cls(
@@ -59,7 +63,7 @@ class Method(HasComment, HasOptions):
             response_type=response_type,
             request_stream=request_stream,
             response_stream=response_stream,
-            comment=comment,
+            comment=comment or '',
             options=options or {},
         )
 
@@ -83,7 +87,7 @@ class Block(Generic[T], HasComment, HasOptions):
             name=name,
             block_type=block_type,
             fields=fields,
-            comment=comment or '',
+            comment=comment or "",
             options=options or {},
         )
 

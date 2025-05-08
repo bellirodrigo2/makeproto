@@ -1,5 +1,5 @@
-from dataclasses import dataclass
 import enum
+from dataclasses import dataclass
 from typing import Any, Dict, Generic, Optional, TypeVar, Union
 
 
@@ -172,16 +172,17 @@ T = TypeVar("T")
 class OneOf(BaseField, Generic[T]): ...
 
 
-
 @dataclass(frozen=True)
 class FieldSpec:
-    options:Optional[Dict[str, Union[str, bool]]] = None
-    comment:Optional[str] = None
+    options: Optional[Dict[str, Union[str, bool]]] = None
+    comment: Optional[str] = None
+
 
 @dataclass
 class OneOfKey:
-    key:str
-    spec:Optional[FieldSpec] = None
+    key: str
+    spec: Optional[FieldSpec] = None
+
 
 # messagebuilder tem que checar se tem outros nomes
 # package nao pode ter mesmo nome de message

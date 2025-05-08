@@ -1,4 +1,3 @@
-
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
@@ -10,7 +9,18 @@ import pytest
 
 from makeproto.makemsg import make_msgblock
 from makeproto.models import Block
-from makeproto.prototypes import BaseMessage, Bool, Bytes, FieldSpec, Fixed64, Int32, OneOf, OneOfKey, String, UInt32
+from makeproto.prototypes import (
+    BaseMessage,
+    Bool,
+    Bytes,
+    FieldSpec,
+    Fixed64,
+    Int32,
+    OneOf,
+    OneOfKey,
+    String,
+    UInt32,
+)
 
 
 class MyEnum(Enum):
@@ -34,12 +44,16 @@ class Hello(BaseMessage):
     c: String
     d: str
     e: UInt32
-    f: Annotated[int, "foobar", FieldSpec(options={'deprecated':True, 'json_name':'f_alias'})]
+    f: Annotated[
+        int, "foobar", FieldSpec(options={"deprecated": True, "json_name": "f_alias"})
+    ]
     g: MyEnum
     h: Annotated[Enum2, "helloworld"]
     i: Annotated[Fixed64, 1234]
     j: list[str]
-    k: Annotated[list[Bool], 1,FieldSpec(options={'deprecated':True, 'json_name':'k_alias'})]
+    k: Annotated[
+        list[Bool], 1, FieldSpec(options={"deprecated": True, "json_name": "k_alias"})
+    ]
     l: dict[str, MyEnum]
     m: Annotated[dict[Int32, Bytes], [], FieldSpec(comment='Comment for "m"')]
     n: datetime
@@ -48,7 +62,7 @@ class Hello(BaseMessage):
     y: Annotated[OneOf[int], OneOfKey("outro")]
     z: Annotated[OneOf[bool], OneOfKey("outro")]
 
-    spec:FieldSpec = FieldSpec(comment='Hello Comment', options={'foo':'bar'})
+    spec: FieldSpec = FieldSpec(comment="Hello Comment", options={"foo": "bar"})
 
 
 def test_get_template_ok():
@@ -56,9 +70,9 @@ def test_get_template_ok():
     block = make_msgblock(Hello)
     assert len(block.fields) == 13
     assert len([x for x in block.fields if isinstance(x, Block)]) == 2
-    assert block.name == 'Hello'
-    assert block.comment == 'Hello Comment'
-    assert block.options['foo'] == 'bar'
+    assert block.name == "Hello"
+    assert block.comment == "Hello Comment"
+    assert block.options["foo"] == "bar"
 
 
 def test_get_template_error():

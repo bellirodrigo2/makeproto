@@ -13,6 +13,7 @@ from makeproto.prototypes import (
     OneOfKey,
 )
 
+
 def get_type(bt: Optional[type[Any]]) -> Optional[str]:
 
     if bt is None or not isinstance(bt, type):  # type: ignore
@@ -71,6 +72,7 @@ def get_type_str(arg: FuncArg) -> Optional[str]:
 
     return get_type(bt)
 
+
 def check_oneof_consistency(arg: FuncArg):
 
     oneofkey = arg.getinstance(OneOfKey, False)
@@ -86,8 +88,11 @@ def check_oneof_consistency(arg: FuncArg):
         raise TypeError(f"OneOf field: '{arg.name}' has no OneOfKey associated")
 
     return oneofkey.key, oneofkey.spec
-    
-def get_oneof_details(arg: FuncArg) -> Optional[tuple[str, str, Any, Optional[FieldSpec]]]:
+
+
+def get_oneof_details(
+    arg: FuncArg,
+) -> Optional[tuple[str, str, Any, Optional[FieldSpec]]]:
 
     oneof = check_oneof_consistency(arg)
     if oneof is None:
@@ -114,13 +119,14 @@ def validate_name(name: str, snake_case: bool):
         name = to_snake(name)
     return name
 
+
 def make_msgblock(
     cls: type[Any], snake_camel_mode: bool = False, ignore_error: bool = True
 ) -> MessageBlock:
 
     args = get_dataclass_fields(cls, False)
 
-    templates: list[Union[Field,Block[Field]]] = []
+    templates: list[Union[Field, Block[Field]]] = []
     oneofs: dict[str, list[Field]] = defaultdict(list)
 
     comment, options = None, None
@@ -132,34 +138,34 @@ def make_msgblock(
             raise TypeError(
                 f'Arg "{arg.name}" in class "{cls.__name__}" has no type Annotation'
             )
-        
+
         if arg.has_default:
-            if arg.istype(FieldSpec) and isinstance(arg.default,FieldSpec):
+            if arg.istype(FieldSpec) and isinstance(arg.default, FieldSpec):
                 comment = arg.default.comment
                 options = arg.default.options
                 continue
             raise ValueError(
                 f'Data Field cannot have a default value. Found at "{arg.name}"'
             )
-            
+
         name = validate_name(arg.name, snake_camel_mode)
 
         str_temp = get_type_str(arg)
 
         if str_temp is not None:
-            specs = arg.getinstance(FieldSpec,default=False)
-            comment, options = None,None
+            specs = arg.getinstance(FieldSpec, default=False)
+            comment, options = None, None
             if specs is not None:
                 comment = specs.comment
                 options = specs.options
             field = Field.make(
-                    name=name,
-                    number=counter,
-                    type_=str_temp,
-                    comment= comment,
-                    options=options,
-                )
-            counter+=1
+                name=name,
+                number=counter,
+                type_=str_temp,
+                comment=comment,
+                options=options,
+            )
+            counter += 1
             templates.append(field)
         else:
             oodetail = get_oneof_details(arg)
@@ -167,7 +173,7 @@ def make_msgblock(
             if oodetail is not None:
                 key, name_, type_, specs = oodetail
                 name_ = validate_name(name_, snake_camel_mode)
-                comment, options = None,None
+                comment, options = None, None
                 if specs is not None:
                     comment = specs.comment
                     options = specs.options
@@ -175,10 +181,10 @@ def make_msgblock(
                     name=name_,
                     number=counter,
                     type_=type_,
-                    comment= comment,
+                    comment=comment,
                     options=options,
                 )
-                counter+=1
+                counter += 1
                 oneofs[key].append(oo_field)
             else:
                 if not ignore_error:
@@ -186,14 +192,21 @@ def make_msgblock(
 
     for k, v in oneofs.items():
         name_ = validate_name(k, snake_camel_mode)
-        ootemp: OneOfBlock = Block.make(name=name_, block_type='oneof',fields=v)
+        ootemp: OneOfBlock = Block.make(name=name_, block_type="oneof", fields=v)
         templates.append(ootemp)
-    
-    block:MessageBlock = Block.make(name=cls.__name__,block_type='message',fields=templates,comment=comment,options=options)
+
+    block: MessageBlock = Block.make(
+        name=cls.__name__,
+        block_type="message",
+        fields=templates,
+        comment=comment,
+        options=options,
+    )
 
     return block
 
-def make_enumblock(enum:type[enum.Enum])->EnumBlock:
+
+def make_enumblock(enum: type[enum.Enum]) -> EnumBlock:
 
     fields: list[Field] = []
 
@@ -201,7 +214,9 @@ def make_enumblock(enum:type[enum.Enum])->EnumBlock:
         name, value = member.name, member.value
         if not isinstance(value, int) or value < 0:
             raise TypeError(f"Enum Values should be positive int only. got {value}")
-        fields.append(Field.make(name,value))
+        fields.append(Field.make(name, value))
 
-    enumBlock:EnumBlock = Block.make(name=enum.__name__,block_type='enum', fields=fields)
+    enumBlock: EnumBlock = Block.make(
+        name=enum.__name__, block_type="enum", fields=fields
+    )
     return enumBlock

@@ -1,4 +1,3 @@
-
 import pytest
 
 from makeproto.templates import Field, Method, render_obj

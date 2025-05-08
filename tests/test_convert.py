@@ -1,11 +1,9 @@
 from pathlib import Path
 
-from makeproto.convert import Converter
 from makeproto.makemsg import make_enumblock, make_msgblock
 from makeproto.prototypes import BaseMessage, Enum
 from makeproto.templates import render_block
 from scripts.compile_proto import compile
-from tests.conftest import ID, Code, Enum2, Product, ProductArea, Requisition, User
 
 
 def test_compile_cls(
