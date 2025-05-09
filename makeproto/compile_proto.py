@@ -12,8 +12,7 @@ def compile(
     filepath = folder / protofile
 
     if not os.path.exists(filepath):
-        print(f"File {protofile} does not exists")
-        return False
+        raise Exception(f"File {protofile} does not exists")
 
     os.makedirs(output_dir, exist_ok=True)
 
@@ -27,11 +26,9 @@ def compile(
     result = subprocess.run(command, capture_output=True, text=True)
 
     if result.returncode == 0:
-        print(f'Protoc compilation for "{protofile}" OK!')
         return True
     else:
-        print(f'Error when compiling file "{protofile}": {result.stderr}')
-        return False
+        raise Exception(f'Error when compiling file "{protofile}": {result.stderr}')
 
 
 def main() -> None:

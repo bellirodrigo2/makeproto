@@ -3,18 +3,14 @@ from dataclasses import fields
 from enum import Enum
 from functools import partial
 from pathlib import Path
-import tabnanny
 from types import ModuleType
 from typing import Any, Callable, Iterable, Optional, TypeVar
 
+from makeproto.exceptions import ConvertingError, NotConvertableClassError
 from makeproto.mapclass import get_dataclass_fields
-from makeproto.message import Message
 from makeproto.prototypes import BaseMessage
 
-# from google.protobuf.descriptor import FieldDescriptor
-
 T = TypeVar("T")
-
 
 def import_py_files_from_folder(folder: Path) -> dict[str, ModuleType]:
     modules: dict[str, ModuleType] = {}
@@ -34,23 +30,6 @@ def import_py_files_from_folder(folder: Path) -> dict[str, ModuleType]:
             modules[module_name] = module
 
     return modules
-
-
-class ConvertingError(Exception):
-
-    def __init__(
-        self,
-        converting: str,
-        clstype: str,
-        field: str,
-        value: Any,
-        expected: str,
-        cause: Exception,
-    ):
-
-        self.msg = f'Error when converting "{clstype}" {converting} proto. Field "{field}" has value "{value}" of type "{type(value)}", when "{expected}" was expected'
-        self.__cause__ = cause
-        super().__init__(self.msg)
 
 
 class Converter:
@@ -74,14 +53,14 @@ class Converter:
             obj, "_needconvert", None
         )
         if needconvert is None:
-            raise Exception(
+            raise NotConvertableClassError(
                 f'Need convert not defined for class: "{obj.__class__.__name__}"'
             )
 
+        arg = "None"
+        expected = "None"
+        value = None
         try:
-            arg = "None"
-            expected = "None"
-            value = None
             for field in fields(obj):
 
                 arg = field.name
@@ -103,7 +82,7 @@ class Converter:
             )
             raise err
 
-        obj_cls = type(obj)
+        obj_cls:type[Any] = type(obj)
         mod = obj_cls.__proto_file__
         cls_name = obj_cls.__name__
         proto_class = self._get_class(mod, cls_name)
@@ -117,7 +96,7 @@ class Converter:
         )
 
         if needconvert is None:
-            raise Exception(f'Need convert not defined for class: "{clstype.__name__}"')
+            raise NotConvertableClassError(f'Need convert not defined for class: "{clstype.__name__}"')
         args = {}
         for field in obj.DESCRIPTOR.fields:
             name = field.name
@@ -145,13 +124,9 @@ class Converter:
             self.expected_to_proto = expected_to_proto
 
     def _resolve_single_enum_from(self, value: Any, type_b: type[Enum]) -> Enum:
-        # if not isinstance(value, int):
-        # raise ValueError(f'Resolve Single Enum from should get an "int" as value, but got {type(value)}')
         return type_b(value)
 
     def _resolve_single_enum_to(self, value: Any) -> Any:
-        # if isinstance(value, Enum):
-        # raise ValueError(f'Resolve Single Enum to should get an "Enum" as value, but got {type(value)}')
         return value.value
 
     def _resolve_single_basemessage_from(self, value: Any, type_b: type[BaseMessage]) -> BaseMessage:
@@ -236,7 +211,8 @@ class Converter:
                 if origin is list:
                     bt = inner_args[0]
                     if not isinstance(bt, type):
-                        raise Exception
+                        raise TypeError(f'On class "{cls.__name__}", field "{arg.name}" list type cant be a Generic. Found {bt}')
+
                     if issubclass(bt, Enum):
                         from_ = partial(self._resolve_list_enum_from, type_b=bt)
                         to_ = self._resolve_list_enum_to
@@ -258,7 +234,8 @@ class Converter:
                 elif origin is dict:
                     bt = inner_args[1]
                     if not isinstance(bt, type):
-                        raise Exception
+                        raise TypeError(f'On class "{cls.__name__}", field "{arg.name}" dict value type cant be a Generic. Found {bt}')
+                    
                     if issubclass(inner_args[1], Enum):
                         from_ = partial(self._resolve_dict_enum_from, type_b=bt)
                         to_ = self._resolve_dict_enum_to

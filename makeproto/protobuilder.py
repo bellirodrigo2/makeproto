@@ -2,9 +2,9 @@ from dataclasses import dataclass, field, fields
 from logging import warning
 from typing import Annotated, Any, Optional, get_args, get_origin
 
+from makeproto.exceptions import  DuplicatedServiceNameError, InconsistentPackageNameError
 from makeproto.prototypes import BaseMessage, Enum
-from makeproto.templates import EnumTemplate, MessageTemplate, ServiceTemplate
-
+from makeproto.models import EnumBlock, MessageBlock, ServiceBlock
 
 @dataclass
 class ProtoModule:
@@ -17,17 +17,17 @@ class ProtoModule:
 
 @dataclass
 class Service(ProtoModule):
-    service: ServiceTemplate
+    service: ServiceBlock
 
 
 @dataclass
 class Message(ProtoModule):
-    msg: MessageTemplate
+    msg: MessageBlock
 
 
 @dataclass
 class EnumMessage(ProtoModule):
-    msg: EnumTemplate
+    msg: EnumBlock
 
 
 @dataclass
@@ -50,37 +50,39 @@ class Protobuilder:
 
     def add_service(self, service: Service):
 
-        serv_proto_name = service.protofile_name
-        protofile = self.files.get(serv_proto_name, None)
+        serv_protofile = service.protofile_name
         serv_name = service.service.name
 
+        thisprotofile = self.files.get(serv_protofile, None)
+
         # there is a protofile with same name
-        if protofile is not None:
+        if thisprotofile is not None:
             # check if package name is consistent
             if (
-                protofile.package_name != service.package_name
-            ):  # tem que ser igual....pensar se vale a pena se um for None, deixar ok
-                raise Exception(
-                    protofile.protofile_name,
-                    protofile.package_name,
-                    service.package_name,
+                thisprotofile.package_name != service.package_name
+            ):  # tem que ser igual....pensar se vale a pena se um deles for None, adotar o outro
+                raise InconsistentPackageNameError(
+                    thisprotofile.protofile_name,
+                    thisprotofile.package_name or 'NOTDEFINED',
+                    service.package_name or 'NOTDEFINED',
+                    serv_name
                 )
             else:
                 # check if there is a service with same name
-                services = protofile.services.get(serv_name, None)
-                if services is not None:
+                thisservice = thisprotofile.services.get(serv_name, None)
+                if thisservice is not None:
                     # if there is and is different raise...
-                    if services != service:
-                        raise Exception
+                    if thisservice != service:
+                        raise DuplicatedServiceNameError(serv_name, serv_protofile)
                     else:
                         # warning if trying to add same service twice
                         warning("")
                         ...
                 else:
-                    protofile.services[serv_name] = service
+                    thisprotofile.services[serv_name] = service
         else:
-            self.files[serv_proto_name] = ProtoFile(
-                protofile_name=serv_proto_name, package_name=service.package_name
+            self.files[serv_protofile] = ProtoFile(
+                protofile_name=serv_protofile, package_name=service.package_name
             )
 
         # preciso extrair req e resp aqui from service

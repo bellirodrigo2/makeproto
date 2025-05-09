@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar, Union
 
 from makeproto.prototypes import EnumOption
@@ -22,6 +22,9 @@ class Field(HasComment, HasOptions):
     name: str
     number: int
 
+    def to_dict(self):
+        return asdict(self)
+
     @classmethod
     def make(
         cls,
@@ -43,17 +46,26 @@ class Field(HasComment, HasOptions):
 @dataclass
 class Method(HasComment, HasOptions):
     method_name: str
-    request_type: str
-    response_type: str
+    request_type: type[Any]
+    response_type: type[Any]
     request_stream: bool
     response_stream: bool
+
+
+    def to_dict(self):
+        _asdict = asdict(self)
+
+        _asdict['request_type'] = self.request_type.__name__
+        _asdict['response_type'] = self.response_type.__name__
+
+        return _asdict
 
     @classmethod
     def make(
         cls,
         method_name: str,
-        request_type: str,
-        response_type: str,
+        request_type: type[Any],
+        response_type: type[Any],
         request_stream: bool,
         response_stream: bool,
         comment: Optional[str] = None,

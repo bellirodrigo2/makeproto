@@ -49,8 +49,8 @@ def make_method(
 
     return Method.make(
         method_name=method_name,
-        request_type=request_type.__name__,
-        response_type=response_type.__name__,
+        request_type=request_type,
+        response_type=response_type,
         request_stream=request_stream,
         response_stream=response_stream,
         comment=comment,

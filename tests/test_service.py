@@ -54,8 +54,8 @@ def test_make_method_simple_function():
 
     assert isinstance(method, Method)
     assert method.method_name == "handler"
-    assert method.request_type == "Req"
-    assert method.response_type == "Res"
+    assert method.request_type == Req
+    assert method.response_type == Res
     assert method.response_stream is False
 
 

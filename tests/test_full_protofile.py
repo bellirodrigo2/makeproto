@@ -57,11 +57,14 @@ user_request_block = Block.make(
     comment="/* Request message to get a user by ID */",
 )
 
+class UserRequest:...
+class User:...
+
 # Método com idempotency_level — SEM aspas
 method = Method.make(
     method_name="GetUser",
-    request_type="UserRequest",
-    response_type="User",
+    request_type=UserRequest,
+    response_type=User,
     request_stream=False,
     response_stream=False,
     comment="// Retrieves a user by ID",

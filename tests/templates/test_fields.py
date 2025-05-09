@@ -4,6 +4,8 @@ from makeproto.templates import Field, Method, render_obj
 
 # Testes para Field, Field de Enum e Method
 
+class MyResponse:...
+class MyRequest:...
 
 @pytest.fixture
 def field():
@@ -60,8 +62,8 @@ def method():
     """Retorna um objeto Method para testes"""
     return Method.make(
         method_name="myMethod",
-        request_type="MyRequest",
-        response_type="MyResponse",
+        request_type=MyRequest,
+        response_type=MyResponse,
         request_stream=False,
         response_stream=False,
     )
@@ -72,8 +74,8 @@ def method_with_options():
     """Retorna um Method com opções"""
     return Method.make(
         method_name="myMethod",
-        request_type="MyRequest",
-        response_type="MyResponse",
+        request_type=MyRequest,
+        response_type=MyResponse,
         request_stream=False,
         response_stream=False,
         options={"opt1": "value1"},
@@ -85,8 +87,8 @@ def method_with_comment():
     """Retorna um Method com comentário"""
     return Method.make(
         method_name="myMethod",
-        request_type="MyRequest",
-        response_type="MyResponse",
+        request_type=MyRequest,
+        response_type=MyResponse,
         request_stream=False,
         response_stream=False,
         comment="This is a method",
@@ -98,8 +100,8 @@ def method_with_options_and_comment():
     """Retorna um Method com opções e comentário"""
     return Method.make(
         method_name="myMethod",
-        request_type="MyRequest",
-        response_type="MyResponse",
+        request_type=MyRequest,
+        response_type=MyResponse,
         request_stream=False,
         response_stream=False,
         options={"opt1": "value1"},

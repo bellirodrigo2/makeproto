@@ -13,6 +13,9 @@ from makeproto.templates import render_block, render_obj
 # -------- Fixtures para fields e methods --------
 
 
+class GetRequest:...
+class GetResponse:...
+
 @pytest.fixture
 def simple_field():
     return Field.make(name="id", number=1, type_="int32")
@@ -25,10 +28,11 @@ def field_with_options():
 
 @pytest.fixture
 def simple_method():
+
     return Method.make(
         method_name="GetItem",
-        request_type="GetRequest",
-        response_type="GetResponse",
+        request_type=GetRequest,
+        response_type=GetResponse,
         request_stream=False,
         response_stream=False,
     )
@@ -38,8 +42,8 @@ def simple_method():
 def method_with_options():
     return Method.make(
         method_name="GetItem",
-        request_type="GetRequest",
-        response_type="GetResponse",
+        request_type=GetRequest,
+        response_type=GetResponse,
         request_stream=False,
         response_stream=False,
         options={"opt1": "value1"},

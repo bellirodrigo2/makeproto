@@ -1,4 +1,3 @@
-from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Callable, Dict, Union
 
@@ -19,9 +18,9 @@ from makeproto.prototypes import EnumOption
 
 def render_obj(temp: Union[Field, Method]) -> str:
     if isinstance(temp, Field):
-        return field_template.render(**asdict(temp))
+        return field_template.render(temp.to_dict())
     elif isinstance(temp, Method):  # type: ignore
-        return method_template.render(**asdict(temp))
+        return method_template.render(temp.to_dict())
     elif isinstance(temp, Block):  # type: ignore
         rendered_items = [render_obj(f) for f in temp.fields]
         return block_template.render(
