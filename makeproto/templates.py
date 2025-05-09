@@ -68,7 +68,7 @@ def make_env(path: Path, filters: dict[str, Callable[..., Any]]) -> Environment:
         loader=FileSystemLoader(str(path)), trim_blocks=True, lstrip_blocks=True
     )
     for k, v in filters.items():
-        env.filters[k] = v # type: ignore
+        env.filters[k] = v  # type: ignore
     return env
 
 

@@ -4,8 +4,12 @@ from makeproto.templates import Field, Method, render_obj
 
 # Testes para Field, Field de Enum e Method
 
-class MyResponse:...
-class MyRequest:...
+
+class MyResponse: ...
+
+
+class MyRequest: ...
+
 
 @pytest.fixture
 def field():

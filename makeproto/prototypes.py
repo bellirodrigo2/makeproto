@@ -1,5 +1,5 @@
-import enum
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import Any, Dict, Generic, Optional, TypeVar, Union
 
 
@@ -9,9 +9,14 @@ class BaseProto:
         raise NotImplementedError("Subclasses should implement 'prototype'.")
 
 
-class BaseMessage(BaseProto):
-    __proto_file__: str = ""
-    __proto_package__: str = ""
+class ProtoModule:
+    __proto_file__: str
+    __proto_package__: str
+
+
+class BaseMessage(BaseProto,ProtoModule):
+    # __proto_file__: str = ""
+    # __proto_package__: str = ""
 
     _oneof: dict[str, set[str]]
     _selected: dict[str, str]
@@ -163,7 +168,8 @@ DEFAULT_PRIMITIVES: dict[type[Any], str] = {
 }
 
 
-class Enum(enum.Enum): ...
+class Enum(ProtoModule,IntEnum):
+    pass
 
 
 T = TypeVar("T")
@@ -190,4 +196,3 @@ class FieldSpec:
 class OneOfKey:
     key: str
     spec: Optional[FieldSpec] = None
-

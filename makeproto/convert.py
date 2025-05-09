@@ -1,6 +1,5 @@
 import importlib.util
 from dataclasses import fields
-from enum import Enum
 from functools import partial
 from pathlib import Path
 from types import ModuleType
@@ -8,9 +7,10 @@ from typing import Any, Callable, Iterable, Optional, TypeVar
 
 from makeproto.exceptions import ConvertingError, NotConvertableClassError
 from makeproto.mapclass import get_dataclass_fields
-from makeproto.prototypes import BaseMessage
+from makeproto.prototypes import BaseMessage, Enum
 
 T = TypeVar("T")
+
 
 def import_py_files_from_folder(folder: Path) -> dict[str, ModuleType]:
     modules: dict[str, ModuleType] = {}
@@ -82,7 +82,7 @@ class Converter:
             )
             raise err
 
-        obj_cls:type[Any] = type(obj)
+        obj_cls: type[Any] = type(obj)
         mod = obj_cls.__proto_file__
         cls_name = obj_cls.__name__
         proto_class = self._get_class(mod, cls_name)
@@ -96,7 +96,9 @@ class Converter:
         )
 
         if needconvert is None:
-            raise NotConvertableClassError(f'Need convert not defined for class: "{clstype.__name__}"')
+            raise NotConvertableClassError(
+                f'Need convert not defined for class: "{clstype.__name__}"'
+            )
         args = {}
         for field in obj.DESCRIPTOR.fields:
             name = field.name
@@ -129,7 +131,9 @@ class Converter:
     def _resolve_single_enum_to(self, value: Any) -> Any:
         return value.value
 
-    def _resolve_single_basemessage_from(self, value: Any, type_b: type[BaseMessage]) -> BaseMessage:
+    def _resolve_single_basemessage_from(
+        self, value: Any, type_b: type[BaseMessage]
+    ) -> BaseMessage:
         return self.from_proto(value, type_b)
 
     def _resolve_single_basemessage_to(self, value: Any) -> Any:
@@ -144,7 +148,9 @@ class Converter:
     def _resolve_list_basemessage_to(self, value: Any) -> list[Any]:
         return [self.to_proto(v) for v in value]
 
-    def _resolve_list_basemessage_from(self, value: Any, type_b: type[BaseMessage]) -> list[BaseMessage]:
+    def _resolve_list_basemessage_from(
+        self, value: Any, type_b: type[BaseMessage]
+    ) -> list[BaseMessage]:
         return [self.from_proto(v, type_b) for v in value]
 
     def _resolve_dict_enum_to(self, value: Any) -> dict[Any, Any]:
@@ -155,7 +161,9 @@ class Converter:
 
         return dict(zip(keys, resolved_values))
 
-    def _resolve_dict_enum_from(self, value: Any, type_b: type[Enum]) -> dict[Any, Enum]:
+    def _resolve_dict_enum_from(
+        self, value: Any, type_b: type[Enum]
+    ) -> dict[Any, Enum]:
         keys = value.keys()
         values = value.values()
 
@@ -171,7 +179,9 @@ class Converter:
 
         return dict(zip(keys, resolved_values))
 
-    def _resolve_dict_basemessage_from(self, value: Any, type_b: type[BaseMessage]) -> dict[Any, BaseMessage]:
+    def _resolve_dict_basemessage_from(
+        self, value: Any, type_b: type[BaseMessage]
+    ) -> dict[Any, BaseMessage]:
         keys = value.keys()
         values = value.values()
 
@@ -193,7 +203,7 @@ class Converter:
             bt = arg.basetype
 
             if bt and arg.istype(Enum):
-                from_:Any = partial(self._resolve_single_enum_from, type_b=bt)
+                from_: Any = partial(self._resolve_single_enum_from, type_b=bt)
                 to_ = self._resolve_single_enum_to
                 fields[name] = Converter.ConvertResolver(
                     from_proto=from_, to_proto=to_, expected_to_proto="Enum"
@@ -211,7 +221,9 @@ class Converter:
                 if origin is list:
                     bt = inner_args[0]
                     if not isinstance(bt, type):
-                        raise TypeError(f'On class "{cls.__name__}", field "{arg.name}" list type cant be a Generic. Found {bt}')
+                        raise TypeError(
+                            f'On class "{cls.__name__}", field "{arg.name}" list type cant be a Generic. Found {bt}'
+                        )
 
                     if issubclass(bt, Enum):
                         from_ = partial(self._resolve_list_enum_from, type_b=bt)
@@ -234,8 +246,10 @@ class Converter:
                 elif origin is dict:
                     bt = inner_args[1]
                     if not isinstance(bt, type):
-                        raise TypeError(f'On class "{cls.__name__}", field "{arg.name}" dict value type cant be a Generic. Found {bt}')
-                    
+                        raise TypeError(
+                            f'On class "{cls.__name__}", field "{arg.name}" dict value type cant be a Generic. Found {bt}'
+                        )
+
                     if issubclass(inner_args[1], Enum):
                         from_ = partial(self._resolve_dict_enum_from, type_b=bt)
                         to_ = self._resolve_dict_enum_to
@@ -246,7 +260,7 @@ class Converter:
                         )
 
                     elif issubclass(inner_args[1], BaseMessage):
-                        from_= partial(self._resolve_dict_basemessage_from, type_b=bt)
+                        from_ = partial(self._resolve_dict_basemessage_from, type_b=bt)
                         to_ = self._resolve_dict_basemessage_to
                         fields[name] = Converter.ConvertResolver(
                             from_proto=from_,

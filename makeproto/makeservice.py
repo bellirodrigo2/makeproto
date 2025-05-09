@@ -5,7 +5,9 @@ from makeproto.models import Method
 from makeproto.prototypes import BaseMessage, EnumOption
 
 
-def check_request_consistency(arg_type: type[Any], funcname: str, req_or_resp: str) -> None:
+def check_request_consistency(
+    arg_type: type[Any], funcname: str, req_or_resp: str
+) -> None:
 
     def get_error_msg(reason: str) -> NoReturn:
         raise TypeError(
@@ -28,7 +30,7 @@ def make_method(
     func: Callable[..., Any],
     request_type: type[Any],
     request_stream: bool,
-    options: Optional[Dict[str, Union[str, bool,EnumOption]]] = None,
+    options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
     comment: Optional[str] = None,
 ) -> Method:
 

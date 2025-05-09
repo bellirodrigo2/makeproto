@@ -7,6 +7,15 @@ T = TypeVar("T")
 
 
 @dataclass
+class ProtoModule:
+    protofile: str
+    package: Optional[str]
+
+    def __post_init__(self):
+        self.protofile = f'{self.protofile.rstrip(".proto")}.proto'
+
+
+@dataclass
 class HasComment:
     comment: str
 
@@ -25,6 +34,20 @@ class Field(HasComment, HasOptions):
     def to_dict(self):
         return asdict(self)
 
+    def __hash__(self):
+        return hash((self.name, self.type, self.number))
+
+    def __eq__(self, other: Any):
+
+        if not isinstance(other, Field):
+            return False
+
+        return (
+            self.name == other.name
+            and self.type == other.type
+            and self.number == other.number
+        )
+
     @classmethod
     def make(
         cls,
@@ -33,7 +56,7 @@ class Field(HasComment, HasOptions):
         type_: str = "",
         comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
-    ) -> 'Field':
+    ) -> "Field":
         return cls(
             type=type_,
             name=name,
@@ -51,12 +74,11 @@ class Method(HasComment, HasOptions):
     request_stream: bool
     response_stream: bool
 
-
     def to_dict(self):
         _asdict = asdict(self)
 
-        _asdict['request_type'] = self.request_type.__name__
-        _asdict['response_type'] = self.response_type.__name__
+        _asdict["request_type"] = self.request_type.__name__
+        _asdict["response_type"] = self.response_type.__name__
 
         return _asdict
 
@@ -70,7 +92,18 @@ class Method(HasComment, HasOptions):
         response_stream: bool,
         comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
-    ) -> 'Method':
+    ) -> "Method":
+
+        if not isinstance(request_type, type):  # type: ignore
+            raise TypeError(
+                f'Method "{method_name}" has inconsistent Request Type. Foud "{request_type}"'
+            )
+
+        if not isinstance(request_type, type):  # type: ignore
+            raise TypeError(
+                f'Method "{method_name}" has inconsistent Response Type. Foud "{response_type}"'
+            )
+
         return cls(
             method_name=method_name,
             request_type=request_type,
@@ -83,21 +116,54 @@ class Method(HasComment, HasOptions):
 
 
 @dataclass
-class Block(Generic[T], HasComment, HasOptions):
+class Block(Generic[T], HasComment, HasOptions, ProtoModule):
     name: str
     block_type: str  # message, enum, oneof, service
     fields: List[T]
 
+    def __hash__(self):
+        return hash(
+            (
+                self.protofile,
+                self.package,
+                self.name,
+                self.block_type,
+                tuple(self.fields),
+                self.comment,
+                frozenset(self.options.items()),
+            )
+        )
+
+    def __eq__(self, other: Any):
+        if not isinstance(other, Block):
+            return False
+        return (
+            self.protofile == other.protofile
+            and self.package == other.package
+            and self.name == other.name
+            and self.block_type == other.block_type
+            and self.fields == other.fields
+            and self.comment == other.comment
+            and self.options == other.options
+        )
+
     @classmethod
     def make(
         cls,
+        protofile: str,
+        package: str,
         name: str,
         block_type: Literal["message", "enum", "oneof", "service"],
         fields: List[Any],
         comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
-    )->'Block[T]':
+    ) -> "Block[T]":
+
+        # TODO check blocks
+
         return cls(
+            protofile=protofile,
+            package=package,
             name=name,
             block_type=block_type,
             fields=fields,
@@ -128,7 +194,7 @@ class ProtoFile(HasComment, HasOptions):
         blocks: List[Block[Union[Field, Method]]],
         comment: str = "",
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
-    ) -> 'ProtoFile':
+    ) -> "ProtoFile":
         return cls(
             version=str(version),
             package_name=package_name,

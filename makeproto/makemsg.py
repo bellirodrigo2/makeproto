@@ -1,4 +1,3 @@
-import enum
 import re
 from collections import defaultdict
 from typing import Any, Dict, Optional, Sequence, Union
@@ -7,11 +6,13 @@ from makeproto.mapclass import FuncArg, get_dataclass_fields
 from makeproto.models import Block, EnumBlock, Field, MessageBlock, OneOfBlock
 from makeproto.prototypes import (
     DEFAULT_PRIMITIVES,
+    BaseMessage,
     BaseProto,
     EnumOption,
     FieldSpec,
     OneOf,
     OneOfKey,
+    Enum
 )
 
 
@@ -23,7 +24,7 @@ def get_type(bt: Optional[type[Any]]) -> Optional[str]:
     if issubclass(bt, BaseProto):  # type: ignore
         return bt.prototype()
 
-    if issubclass(bt, enum.Enum):
+    if issubclass(bt, Enum):
         return bt.__name__
 
     return DEFAULT_PRIMITIVES.get(bt, None)
@@ -122,15 +123,17 @@ def validate_name(name: str, snake_case: bool) -> str:
 
 
 def check_types(args: Sequence[FuncArg], cls_name: str) -> None:
-    for arg in args:
 
+    for arg in args:
         if arg.basetype is None:
             raise TypeError(
                 f'Arg "{arg.name}" in class "{cls_name}" has no type Annotation'
             )
 
 
-def get_spec(args: Sequence[FuncArg]) -> tuple[Optional[str], Optional[Dict[str, Union[str, bool,EnumOption]]]]:
+def get_spec(
+    args: Sequence[FuncArg],
+) -> tuple[Optional[str], Optional[Dict[str, Union[str, bool, EnumOption]]]]:
 
     comment, options = None, None
     for arg in args:
@@ -144,7 +147,7 @@ def get_spec(args: Sequence[FuncArg]) -> tuple[Optional[str], Optional[Dict[str,
 
 
 def make_msgblock(
-    cls: type[Any], snake_camel_mode: bool = False, ignore_error: bool = True
+    cls: type[BaseMessage], snake_camel_mode: bool = False, ignore_error: bool = True
 ) -> MessageBlock:
 
     args = get_dataclass_fields(cls, False)
@@ -153,6 +156,9 @@ def make_msgblock(
 
     templates: list[Union[Field, Block[Field]]] = []
     oneofs: dict[str, list[Field]] = defaultdict(list)
+
+    protofile = cls.__proto_file__
+    package = cls.__proto_package__
 
     counter = 1
     for arg in args:
@@ -206,12 +212,20 @@ def make_msgblock(
 
     for k, v in oneofs.items():
         name_ = validate_name(k, snake_camel_mode)
-        ootemp: OneOfBlock = Block.make(name=name_, block_type="oneof", fields=v)
+        ootemp: OneOfBlock = Block.make(
+            protofile=protofile,
+            package=package,
+            name=name_,
+            block_type="oneof",
+            fields=v,
+        )
         templates.append(ootemp)
 
     comment, options = get_spec(args)
 
     block: MessageBlock = Block.make(
+        protofile=protofile,
+        package=package,
         name=cls.__name__,
         block_type="message",
         fields=templates,
@@ -222,9 +236,12 @@ def make_msgblock(
     return block
 
 
-def make_enumblock(enum: type[enum.Enum]) -> EnumBlock:
+def make_enumblock(enum: type[Enum]) -> EnumBlock:
 
     fields: list[Field] = []
+
+    protofile = enum.__proto_file__
+    package = enum.__proto_package__
 
     for member in enum:
         name, value = member.name, member.value
@@ -232,7 +249,40 @@ def make_enumblock(enum: type[enum.Enum]) -> EnumBlock:
             raise TypeError(f"Enum Values should be positive int only. got {value}")
         fields.append(Field.make(name, value))
 
-    enumBlock: EnumBlock = Block.make(
+    enumBlock: EnumBlock = Block.make(protofile=protofile,package=package,
         name=enum.__name__, block_type="enum", fields=fields
     )
     return enumBlock
+
+
+def cls_to_blocks(
+    tgt: type[Union[BaseMessage, Enum]],
+    visited: Optional[set[Union[MessageBlock, EnumBlock]]] = None,
+) -> set[Union[MessageBlock, EnumBlock]]:
+
+    if not isinstance(tgt, type):  # type: ignore
+        raise TypeError(f'tgt argumento should be a type. found "{tgt}"')
+
+    if visited is None:
+        visited = set()
+
+    # Evita regenerar blocos que já foram criados
+    if any(b.name == tgt.__name__ for b in visited):
+        return visited
+
+    if issubclass(tgt, Enum):
+        enumblock = make_enumblock(tgt)
+        visited.add(enumblock)
+
+    elif issubclass(tgt, BaseMessage):  # type: ignore
+        msgblock = make_msgblock(tgt, False, False)
+        visited.add(msgblock)
+
+        args = get_dataclass_fields(tgt, False)
+
+        for arg in args:
+            if arg.istype(Enum) or arg.istype(BaseMessage):
+                msgs = cls_to_blocks(arg.basetype, visited)
+                visited.update(msgs)
+
+    return visited

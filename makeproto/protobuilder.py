@@ -1,10 +1,13 @@
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from logging import warning
-from typing import Annotated, Any, Optional, get_args, get_origin
+from typing import Any, Generic, Optional, TypeVar, Union
 
-from makeproto.exceptions import  DuplicatedServiceNameError, InconsistentPackageNameError
-from makeproto.prototypes import BaseMessage, Enum
+from makeproto.exceptions import (
+    DuplicatedServiceNameError,
+    InconsistentPackageNameError,
+)
 from makeproto.models import EnumBlock, MessageBlock, ServiceBlock
+
 
 @dataclass
 class ProtoModule:
@@ -15,19 +18,17 @@ class ProtoModule:
         self.protofile_name = f'{self.protofile_name.rstrip(".proto")}.proto'
 
 
-@dataclass
-class Service(ProtoModule):
-    service: ServiceBlock
+T = TypeVar("T")
 
 
 @dataclass
-class Message(ProtoModule):
-    msg: MessageBlock
+class GBlock(ProtoModule, Generic[T]):
+    block: T
 
 
-@dataclass
-class EnumMessage(ProtoModule):
-    msg: EnumBlock
+Service = GBlock[ServiceBlock]
+Message = GBlock[MessageBlock]
+EnumMessage = GBlock[EnumBlock]
 
 
 @dataclass
@@ -37,8 +38,51 @@ class ProtoFile(ProtoModule):
     options: list[str] = field(default_factory=list)
 
     services: dict[str, Service] = field(default_factory=dict)
-    messages: list[Message] = field(default_factory=list)
-    enums: list[EnumMessage] = field(default_factory=list)
+    messages: dict[str, Message] = field(default_factory=dict)
+    enums: dict[str, EnumMessage] = field(default_factory=dict)
+
+    def add_message(self, message: Message): ...
+
+    def add_service(self, service: Service):
+
+        self._check_consistency(service)
+
+    def _check_consistency(self, tgt: Union[Message, Service, EnumMessage]):
+
+        blocktype = tgt.block.block_type
+        if blocktype == "message":
+            map = self.messages
+        elif blocktype == "service":
+            map = self.services
+        elif blocktype == "enum":
+            map = self.enums
+        else:
+            raise ValueError(
+                f'Block "{tgt.block.name}" has an inconsistent "block_type": {blocktype}'
+            )
+
+        # tem que ser igual....pensar se vale a pena se um deles for None, adotar o outro
+        if self.package_name != tgt.package_name:
+            raise InconsistentPackageNameError(
+                self.protofile_name,
+                self.package_name or "NOTDEFINED",
+                tgt.package_name or "NOTDEFINED",
+                tgt.block.name,
+            )
+        else:
+            # check if there is a service with same name
+            tgtname = tgt.block.name
+            thisblock = map.get(tgtname, None)
+            if thisblock is not None:
+                # if there is and is different raise...
+                if thisblock != tgt:
+                    raise DuplicatedServiceNameError(tgtname, tgt.protofile_name)
+                else:
+                    # warning if trying to add same service twice
+                    warning(f"Service {tgtname} is trying to be added twice")
+                    ...
+            else:
+                map[tgtname] = tgt
 
 
 @dataclass
@@ -46,121 +90,39 @@ class Protobuilder:
 
     files: dict[str, ProtoFile] = field(default_factory=dict)
 
-    def _map_messages(self, service: Service): ...
+    def add_message(self, message: Message): ...
 
     def add_service(self, service: Service):
 
-        serv_protofile = service.protofile_name
-        serv_name = service.service.name
+        servblock = service.block
+        protofile = self.files.get(servblock.name, None)
 
-        thisprotofile = self.files.get(serv_protofile, None)
-
-        # there is a protofile with same name
-        if thisprotofile is not None:
-            # check if package name is consistent
-            if (
-                thisprotofile.package_name != service.package_name
-            ):  # tem que ser igual....pensar se vale a pena se um deles for None, adotar o outro
-                raise InconsistentPackageNameError(
-                    thisprotofile.protofile_name,
-                    thisprotofile.package_name or 'NOTDEFINED',
-                    service.package_name or 'NOTDEFINED',
-                    serv_name
-                )
-            else:
-                # check if there is a service with same name
-                thisservice = thisprotofile.services.get(serv_name, None)
-                if thisservice is not None:
-                    # if there is and is different raise...
-                    if thisservice != service:
-                        raise DuplicatedServiceNameError(serv_name, serv_protofile)
-                    else:
-                        # warning if trying to add same service twice
-                        warning("")
-                        ...
-                else:
-                    thisprotofile.services[serv_name] = service
+        if protofile is not None:
+            protofile.add_service(service)
         else:
-            self.files[serv_protofile] = ProtoFile(
-                protofile_name=serv_protofile, package_name=service.package_name
-            )
+            pf = ProtoFile(service.protofile_name, service.package_name)
+            pf.services[servblock.name] = service
+            self.files[service.protofile_name] = pf
 
-        # preciso extrair req e resp aqui from service
-        # requests = [req for req in service.]
+        requests = [m.request_type for m in service.block.fields]
+        responses = [m.response_type for m in service.block.fields]
 
+        classes: set[type[Any]] = set(requests) | set(responses)
 
-@dataclass
-class ProtoFile2:
-    imports: set[str] = field(default_factory=set[str])
-    package: Optional[str] = None
-    options: Optional[list[str]] = None
-    messages: set[type[BaseMessage]] = field(default_factory=set[type[BaseMessage]])
+        for cls in classes:
+            ...
 
+    def render(self) -> str:
 
-def isbasemsg(msgtype: Any):
-    return isinstance(msgtype, type) and issubclass(msgtype, BaseMessage)  # type: ignore
+        # checar consistencia entre protofiles e packages novamente.
+        # checar consistencia entre os index... reserved
+        # checar validate_name e snake_case
 
+        # transformar names de packages diferentes...
+        # checar ordem de aparecimento no file
+        # checar imports
 
-@dataclass
-class ProtoBuilder:
+        # fazer interface para transformacoes e checagens
 
-    protofiles: dict[str, ProtoFile] = field(default_factory=dict)
-
-    def add_message(self, msgtype: type[BaseMessage]):
-
-        if not isbasemsg(msgtype):
-            raise ValueError("XXX")
-
-        self._add_imports(msgtype)
-
-        file_name = msgtype.__proto_file__
-        if file_name not in self.protofiles:
-            self.protofiles[file_name] = ProtoFile()
-        else:
-            # checar se bate o package
-            this_pckg = msgtype.__proto_package__
-            existing_pckg = self.protofiles[file_name].package
-            if this_pckg != existing_pckg:
-                raise ValueError(
-                    f'Protofile {file_name} already defined with package: "{existing_pckg}" and {this_pckg} passed for class "{msgtype.__name__}"'
-                )
-
-        self.protofiles[file_name].messages.add(msgtype)
-        return file_name
-
-    def _add_imports(self, msgtype: type[BaseMessage]):
-
-        file_name = self.add_message(msgtype)
-
-        for f in fields(msgtype):
-            if isinstance(f.type, type) and issubclass(f.type, BaseMessage):
-                fname = f.type.__proto_file__
-                if (
-                    fname != file_name
-                    and fname not in self.protofiles[file_name].imports
-                ):
-                    self.protofiles[file_name].imports.add(fname)
-                # self.map_messages(field.type)
-
-    def add_option(self, protofile: str, options: Any): ...
-
-
-def chain_dependants(msgtype: type[BaseMessage]) -> set[type[BaseMessage]]:
-
-    if not isbasemsg(msgtype):
-        raise ValueError("XXX")
-
-    bm = set([msgtype])
-
-    for f in fields(msgtype):
-
-        ftype = f.type
-        if get_origin(ftype) is Annotated:
-            ftype = get_args(ftype)[0]
-
-        if isbasemsg(ftype):
-            bm.add(ftype)
-            if not issubclass(ftype, Enum):
-                dependants = chain_dependants(ftype)
-            bm.update(dependants)
-    return bm
+        # RAisE uma lista de erros....try/except cada
+        ...

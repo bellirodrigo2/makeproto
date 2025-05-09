@@ -1,7 +1,6 @@
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
 from typing import Annotated
 
@@ -20,21 +19,34 @@ from makeproto.prototypes import (
     OneOfKey,
     String,
     UInt32,
+    Enum
 )
 
 
 class MyEnum(Enum):
+
+    __proto_file__ = 'proto'
+    __proto_package__ = 'pack1'
+
     VALID = 0
     INVALID = 1
 
 
 class Enum2(Enum):
+
+    __proto_file__ = 'proto'
+    __proto_package__ = 'pack1'
+
     FOO = 0
     BAR = 1
 
 
 @dataclass
 class Hello(BaseMessage):
+
+    __proto_file__ = 'proto'
+    __proto_package__ = 'pack1'
+
     ga: type
     nou: tuple[str, ...]
     a: Annotated[OneOf[str], OneOfKey("choice")]
@@ -84,6 +96,9 @@ def test_get_template_error():
 def test_get_template_fail():
     @dataclass
     class Fail(BaseMessage):
+
+        __proto_file__ = 'proto'
+        __proto_package__ = 'pack1'
         aça: str
 
     with pytest.raises(ValueError, match="proto identifier"):
@@ -93,6 +108,9 @@ def test_get_template_fail():
 def test_get_template_fail2():
     @dataclass
     class Fail(BaseMessage):
+
+        __proto_file__ = 'proto'
+        __proto_package__ = 'pack1'
         aca: str = "hello"
 
     with pytest.raises(ValueError, match="Data Field cannot "):

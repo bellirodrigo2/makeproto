@@ -1,8 +1,8 @@
-
 from typing import Any
 
 
-class NotConvertableClassError(Exception):...
+class NotConvertableClassError(Exception): ...
+
 
 class ConvertingError(Exception):
 
@@ -20,13 +20,14 @@ class ConvertingError(Exception):
         self.__cause__ = cause
         super().__init__(self.msg)
 
+
 class InconsistentPackageNameError(Exception):
-    
-    def __init__(self, protofile:str, package1:str, package2:str, tgt_service:str):
-        ...
+
+    def __init__(
+        self, protofile: str, package1: str, package2: str, tgt_service: str
+    ): ...
 
 
 class DuplicatedServiceNameError(Exception):
-    
-    def __init__(self, servicename:str, protofile:str):
-        ...
+
+    def __init__(self, servicename: str, protofile: str): ...
