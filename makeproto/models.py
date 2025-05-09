@@ -30,7 +30,7 @@ class Field(HasComment, HasOptions):
         type_: str = "",
         comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
-    ):
+    ) -> 'Field':
         return cls(
             type=type_,
             name=name,
@@ -58,7 +58,7 @@ class Method(HasComment, HasOptions):
         response_stream: bool,
         comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
-    ):
+    ) -> 'Method':
         return cls(
             method_name=method_name,
             request_type=request_type,
@@ -84,7 +84,7 @@ class Block(Generic[T], HasComment, HasOptions):
         fields: List[Any],
         comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
-    ):
+    )->'Block[T]':
         return cls(
             name=name,
             block_type=block_type,
@@ -116,7 +116,7 @@ class ProtoFile(HasComment, HasOptions):
         blocks: List[Block[Union[Field, Method]]],
         comment: str = "",
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
-    ):
+    ) -> 'ProtoFile':
         return cls(
             version=str(version),
             package_name=package_name,

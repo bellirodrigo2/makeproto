@@ -4,7 +4,7 @@ from pathlib import Path
 from makeproto.models import Block, Field, Method, ProtoFile
 from makeproto.prototypes import EnumOption
 from makeproto.templates import render_protofile
-from scripts.compile_proto import compile
+from makeproto.compile_proto import compile
 
 # Campos reutilizáveis
 field1 = Field.make(

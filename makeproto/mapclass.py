@@ -53,7 +53,7 @@ class FuncArg:
 NO_DEFAULT = object()
 
 
-def resolve_default(field: Field[Any]):
+def resolve_default(field: Field[Any]) -> tuple[Any,...]:
     if field.default is not MISSING:
         default = field.default
         has_default = True

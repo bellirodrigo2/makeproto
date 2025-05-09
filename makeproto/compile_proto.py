@@ -34,7 +34,7 @@ def compile(
         return False
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description="Compile .proto file to Python class")
     parser.add_argument("-file", "--protofile", help=".proto file name")
     parser.add_argument("-folder", "--folder", help=".proto file name")

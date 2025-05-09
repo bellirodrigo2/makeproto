@@ -3,6 +3,7 @@ from dataclasses import fields
 from enum import Enum
 from functools import partial
 from pathlib import Path
+import tabnanny
 from types import ModuleType
 from typing import Any, Callable, Iterable, Optional, TypeVar
 
@@ -65,7 +66,7 @@ class Converter:
         clss = getattr(mod, cls_name)
         return clss
 
-    def to_proto(self, obj: BaseMessage, case_mode: Optional[str] = None) -> Any:
+    def to_proto(self, obj: Any, case_mode: Optional[str] = None) -> Any:
 
         args = {}
 
@@ -168,7 +169,7 @@ class Converter:
     def _resolve_list_basemessage_to(self, value: Any) -> list[Any]:
         return [self.to_proto(v) for v in value]
 
-    def _resolve_list_basemessage_from(self, value: Any, type_b: type[BaseMessage]):
+    def _resolve_list_basemessage_from(self, value: Any, type_b: type[BaseMessage]) -> list[BaseMessage]:
         return [self.from_proto(v, type_b) for v in value]
 
     def _resolve_dict_enum_to(self, value: Any) -> dict[Any, Any]:
@@ -217,7 +218,7 @@ class Converter:
             bt = arg.basetype
 
             if bt and arg.istype(Enum):
-                from_ = partial(self._resolve_single_enum_from, type_b=bt)
+                from_:Any = partial(self._resolve_single_enum_from, type_b=bt)
                 to_ = self._resolve_single_enum_to
                 fields[name] = Converter.ConvertResolver(
                     from_proto=from_, to_proto=to_, expected_to_proto="Enum"
@@ -234,6 +235,8 @@ class Converter:
 
                 if origin is list:
                     bt = inner_args[0]
+                    if not isinstance(bt, type):
+                        raise Exception
                     if issubclass(bt, Enum):
                         from_ = partial(self._resolve_list_enum_from, type_b=bt)
                         to_ = self._resolve_list_enum_to
@@ -254,6 +257,8 @@ class Converter:
 
                 elif origin is dict:
                     bt = inner_args[1]
+                    if not isinstance(bt, type):
+                        raise Exception
                     if issubclass(inner_args[1], Enum):
                         from_ = partial(self._resolve_dict_enum_from, type_b=bt)
                         to_ = self._resolve_dict_enum_to
@@ -264,7 +269,7 @@ class Converter:
                         )
 
                     elif issubclass(inner_args[1], BaseMessage):
-                        from_ = partial(self._resolve_dict_basemessage_from, type_b=bt)
+                        from_= partial(self._resolve_dict_basemessage_from, type_b=bt)
                         to_ = self._resolve_dict_basemessage_to
                         fields[name] = Converter.ConvertResolver(
                             from_proto=from_,

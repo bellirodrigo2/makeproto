@@ -27,40 +27,40 @@ class BaseField(BaseProto):
 
 class BaseStringField(str, BaseField):
     @classmethod
-    def python_type(cls):
+    def python_type(cls) -> type[str]:
         return str
 
 
 class BaseIntField(int, BaseField):
     @classmethod
-    def python_type(cls):
+    def python_type(cls) -> type[int]:
         return int
 
 
 class BaseFloatField(float, BaseField):
     @classmethod
-    def python_type(cls):
+    def python_type(cls) -> type[float]:
         return float
 
 
 class BaseBytesField(bytes, BaseField):
     @classmethod
-    def python_type(cls):
+    def python_type(cls) -> type[bytes]:
         return bytes
 
 
 class BaseBoolField(BaseField):
-    def __init__(self, value: bool = False):
+    def __init__(self, value: bool = False) -> None:
         self._value = bool(value)
 
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self._value
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self._value)
 
     @classmethod
-    def python_type(cls):
+    def python_type(cls) -> type[bool]:
         return bool
 
 
@@ -173,10 +173,10 @@ class OneOf(BaseField, Generic[T]): ...
 
 
 class EnumOption:
-    def __init__(self, name: str):
+    def __init__(self, name: str) -> None:
         self.name = name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
 
