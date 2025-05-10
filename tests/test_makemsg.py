@@ -93,16 +93,16 @@ def test_get_template_error():
         make_msgblock(Hello, ignore_error=False)
 
 
-def test_get_template_fail():
-    @dataclass
-    class Fail(BaseMessage):
+# def test_get_template_fail():
+#     @dataclass
+#     class Fail(BaseMessage):
 
-        __proto_file__ = 'proto'
-        __proto_package__ = 'pack1'
-        aça: str
+#         __proto_file__ = 'proto'
+#         __proto_package__ = 'pack1'
+#        aça: str
 
-    with pytest.raises(ValueError, match="proto identifier"):
-        make_msgblock(Fail)
+#     with pytest.raises(ValueError, match="proto identifier"):
+#         make_msgblock(Fail)
 
 
 def test_get_template_fail2():

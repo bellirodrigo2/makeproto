@@ -46,6 +46,44 @@ allowed_map_key = [
 ]
 
 
+def get_type(bt: Optional[type[Any]]) -> Optional[str]:
+
+    if bt is None or not isinstance(bt, type):  # type: ignore
+        return None
+
+    if issubclass(bt, BaseProto):  # type: ignore
+        return bt.prototype()
+
+    if issubclass(bt, Enum):
+        return bt.__name__
+
+    return DEFAULT_PRIMITIVES.get(bt, None)
+
+def validate_type(bt:Optional[type[Any]]):
+
+    if bt is None or not isinstance(bt, type):  # type: ignore
+        return False
+
+    if issubclass(bt, BaseProto):  # type: ignore
+        return True
+
+    return bt in DEFAULT_PRIMITIVES
+
+
+def validate_arg(arg: FuncArg):
+    
+    bt = arg.basetype
+    origin = arg.origin
+    args = arg.args
+
+    if origin in {list, set}:
+        return validate_type(args[0])
+    if origin is dict:
+        return validate_type(args[1])
+
+    return validate_type(bt)
+
+
 def get_type_str(arg: FuncArg) -> Optional[str]:
 
     bt = arg.basetype
@@ -122,7 +160,7 @@ def validate_name(name: str, snake_case: bool) -> str:
     return name
 
 
-def check_types(args: Sequence[FuncArg], cls_name: str) -> None:
+def has_types(args: Sequence[FuncArg], cls_name: str) -> None:
 
     for arg in args:
         if arg.basetype is None:
@@ -152,13 +190,13 @@ def make_msgblock(
 
     args = get_dataclass_fields(cls, False)
 
-    check_types(args, cls.__name__)
+    has_types(args, cls.__name__)
 
     templates: list[Union[Field, Block[Field]]] = []
     oneofs: dict[str, list[Field]] = defaultdict(list)
 
-    protofile = cls.__proto_file__
-    package = cls.__proto_package__
+    protofile = cls.protofile()
+    package = cls.package()
 
     counter = 1
     for arg in args:
@@ -168,7 +206,7 @@ def make_msgblock(
                 f'Data Field cannot have a default value. Found at "{arg.name}"'
             )
 
-        name = validate_name(arg.name, snake_camel_mode)
+        # name = validate_name(arg.name, snake_camel_mode)
 
         str_temp = get_type_str(arg)
 
@@ -179,9 +217,9 @@ def make_msgblock(
                 comment = specs.comment
                 options = specs.options
             field = Field.make(
-                name=name,
+                name=arg.name,
                 number=counter,
-                type_=str_temp,
+                ftype=str_temp,
                 comment=comment,
                 options=options,
             )
@@ -191,8 +229,8 @@ def make_msgblock(
             oodetail = get_oneof_details(arg)
 
             if oodetail is not None:
-                key, name_, type_, specs = oodetail
-                name_ = validate_name(name_, snake_camel_mode)
+                key, name_, ftype, specs = oodetail
+                # name_ = validate_name(name_, snake_camel_mode)
                 comment, options = None, None
                 if specs is not None:
                     comment = specs.comment
@@ -200,7 +238,7 @@ def make_msgblock(
                 oo_field = Field.make(
                     name=name_,
                     number=counter,
-                    type_=type_,
+                    ftype=ftype,
                     comment=comment,
                     options=options,
                 )
@@ -211,11 +249,113 @@ def make_msgblock(
                     raise ValueError(f"Invalid Field {arg}")
 
     for k, v in oneofs.items():
-        name_ = validate_name(k, snake_camel_mode)
+        # name_ = validate_name(k, snake_camel_mode)
         ootemp: OneOfBlock = Block.make(
             protofile=protofile,
             package=package,
-            name=name_,
+            name=k,
+            block_type="oneof",
+            fields=v,
+        )
+        templates.append(ootemp)
+
+    comment, options = get_spec(args)
+
+    block: MessageBlock = Block.make(
+        protofile=protofile,
+        package=package,
+        name=cls.__name__,
+        block_type="message",
+        fields=templates,
+        comment=comment,
+        options=options,
+    )
+
+    return block
+
+def get_oneof_details2(
+    arg: FuncArg,
+) -> Optional[tuple[str, str, Any, Optional[FieldSpec]]]:
+
+    oneof = check_oneof_consistency(arg)
+    if oneof is None:
+        return None
+    oneofkey, spec = oneof
+
+    args = arg.args
+    isvalid = validate_type(args[0])
+    if isvalid :
+        raise TypeError(f"At arg: {arg.name}, OneOf type not allowed: {type(args[0])}")
+
+    return oneofkey, arg.name, args[0], spec
+
+
+
+def make_msgblock2(cls: type[BaseMessage], ignore_error: bool = True) -> MessageBlock:
+
+    args = get_dataclass_fields(cls, False)
+
+    has_types(args, cls.__name__)
+
+    templates: list[Union[Field, Block[Field]]] = []
+    oneofs: dict[str, list[Field]] = defaultdict(list)
+
+    protofile = cls.protofile()
+    package = cls.package()
+
+    counter = 1
+    for arg in args:
+
+        if arg.has_default and not arg.istype(FieldSpec):
+            raise ValueError(
+                f'Data Field cannot have a default value. Found at "{arg.name}"'
+            )
+
+        isvalid = validate_arg(arg)
+
+        if isvalid:
+            specs = arg.getinstance(FieldSpec, default=False)
+            comment, options = None, None
+            if specs is not None:
+                comment = specs.comment
+                options = specs.options
+            field = Field.make(
+                name=arg.name,
+                number=counter,
+                ftype=bt,
+                comment=comment,
+                options=options,
+            )
+            counter += 1
+            templates.append(field)
+        else:
+            oodetail = get_oneof_details2(arg)
+
+            if oodetail is not None:
+                key, name_, ftype, specs = oodetail
+                comment, options = None, None
+                if specs is not None:
+                    comment = specs.comment
+                    options = specs.options
+                oo_field = Field.make(
+                    name=name_,
+                    number=counter,
+                    ftype=ftype,
+                    comment=comment,
+                    options=options,
+                )
+                counter += 1
+                oneofs[key].append(oo_field)
+            else:
+                if not ignore_error:
+                    raise ValueError(f"Invalid Field {arg}")
+
+    for k, v in oneofs.items():
+        # name_ = validate_name(k, snake_camel_mode)
+        ootemp: OneOfBlock = Block.make(
+            protofile=protofile,
+            package=package,
+            name=k,
             block_type="oneof",
             fields=v,
         )
@@ -240,8 +380,8 @@ def make_enumblock(enum: type[Enum]) -> EnumBlock:
 
     fields: list[Field] = []
 
-    protofile = enum.__proto_file__
-    package = enum.__proto_package__
+    protofile = enum.protofile()
+    package = enum.package()
 
     for member in enum:
         name, value = member.name, member.value

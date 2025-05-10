@@ -96,8 +96,11 @@ service_block = Block.make(
 )
 
 # Arquivo Proto
+fname = "teste_full.proto"
+
 proto_file = ProtoFile.make(
     version=3,
+    protofile_name=fname,
     package_name="example.v1",
     imports=["google/api/client.proto"],
     blocks=[enum_block, user_request_block, message_block, service_block],
@@ -137,7 +140,6 @@ def test_protofile_rendering():
     assert "// Retrieves a user by ID" in result
 
     folder = Path(__file__).parent / "proto"
-    fname = "teste_full.proto"
     file = folder / fname
     with open(file, "w", encoding="utf-8") as f:
         f.write(result)

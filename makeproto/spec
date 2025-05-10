@@ -1,0 +1,30 @@
+Map
+allowed_map_key = [
+    "int32",
+    "int64",
+    "uint32",
+    "uint64",
+    "sint32",
+    "sint64",
+    "fixed32",
+    "fixed64",
+    "sfixed32",
+    "sfixed64",
+    "bool",
+    "string",
+]
+
+not_allowed_map_value = [
+    list,
+    map'
+]
+
+List
+
+OneOf
+
+Mesmo Nome
+rever hash de block
+nao pode ter mesmo nome para message e enum
+message e enum tem que ter mesmo block_type
+diferenciar pelo type=None

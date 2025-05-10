@@ -83,7 +83,7 @@ class Converter:
             raise err
 
         obj_cls: type[Any] = type(obj)
-        mod = obj_cls.__proto_file__
+        mod = obj_cls.protofile()
         cls_name = obj_cls.__name__
         proto_class = self._get_class(mod, cls_name)
 

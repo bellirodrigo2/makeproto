@@ -56,7 +56,7 @@ def render_protofile(proto_file: ProtoFile) -> str:
 
     return proto_template.render(
         version=proto_file.version or 3,
-        package_name=proto_file.package_name,
+        package_name=proto_file.package,
         options=proto_file.options or {},
         blocks=rendered_blocks,
     )

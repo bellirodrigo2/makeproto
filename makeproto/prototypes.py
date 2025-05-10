@@ -9,14 +9,20 @@ class BaseProto:
         raise NotImplementedError("Subclasses should implement 'prototype'.")
 
 
-class ProtoModule:
+class ProtoHeader:
     __proto_file__: str
     __proto_package__: str
 
+    @classmethod
+    def protofile(cls)->str:
+        return f'{cls.__proto_file__.rstrip('.proto')}.proto'
 
-class BaseMessage(BaseProto,ProtoModule):
-    # __proto_file__: str = ""
-    # __proto_package__: str = ""
+    @classmethod
+    def package(cls)->str:
+        return cls.__proto_package__
+
+
+class BaseMessage(BaseProto,ProtoHeader):
 
     _oneof: dict[str, set[str]]
     _selected: dict[str, str]
@@ -24,7 +30,11 @@ class BaseMessage(BaseProto,ProtoModule):
     @classmethod
     def prototype(cls) -> str:
         return cls.__name__
-
+    
+    @classmethod
+    def qualified_prototype(cls) -> str:
+        return f'{cls.package()}.{cls.__name__}'
+    
 
 class BaseField(BaseProto):
     pass
@@ -168,7 +178,7 @@ DEFAULT_PRIMITIVES: dict[type[Any], str] = {
 }
 
 
-class Enum(ProtoModule,IntEnum):
+class Enum(ProtoHeader,IntEnum):
     pass
 
 

@@ -26,8 +26,3 @@ class InconsistentPackageNameError(Exception):
     def __init__(
         self, protofile: str, package1: str, package2: str, tgt_service: str
     ): ...
-
-
-class DuplicatedServiceNameError(Exception):
-
-    def __init__(self, servicename: str, protofile: str): ...

@@ -14,14 +14,14 @@ class MyRequest: ...
 @pytest.fixture
 def field():
     """Retorna um objeto Field para testes"""
-    return Field.make(name="field_name", number=1, type_="string", options={})
+    return Field.make(name="field_name", number=1, ftype="string", options={})
 
 
 @pytest.fixture
 def field_with_options():
     """Retorna um Field com opções"""
     return Field.make(
-        name="field_name", number=1, type_="string", options={"opt1": "value1"}
+        name="field_name", number=1, ftype="string", options={"opt1": "value1"}
     )
 
 
@@ -31,7 +31,7 @@ def field_with_comment():
     return Field.make(
         name="field_name",
         number=1,
-        type_="string",
+        ftype="string",
         options={},
         comment="This is a field",
     )
@@ -43,7 +43,7 @@ def field_with_options_and_comment():
     return Field.make(
         name="field_name",
         number=1,
-        type_="string",
+        ftype="string",
         options={"opt1": "value1"},
         comment="This is a field",
     )

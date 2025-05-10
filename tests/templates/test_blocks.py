@@ -21,12 +21,12 @@ class GetResponse: ...
 
 @pytest.fixture
 def simple_field():
-    return Field.make(name="id", number=1, type_="int32")
+    return Field.make(name="id", number=1, ftype="int32")
 
 
 @pytest.fixture
 def field_with_options():
-    return Field.make(name="id", number=1, type_="int32", options={"deprecated": True})
+    return Field.make(name="id", number=1, ftype="int32", options={"deprecated": True})
 
 
 @pytest.fixture
@@ -156,7 +156,7 @@ def test_message_block_with_fields_and_oneof_with_options_and_comments():
     direct_field = Field.make(
         name="username",
         number=1,
-        type_="string",
+        ftype="string",
         comment="User's name",
         options={"deprecated": True},
     )
@@ -165,14 +165,14 @@ def test_message_block_with_fields_and_oneof_with_options_and_comments():
     oneof_field1 = Field.make(
         name="email",
         number=2,
-        type_="string",
+        ftype="string",
         comment="User email",
         options={"required": True},
     )
     oneof_field2 = Field.make(
         name="phone",
         number=3,
-        type_="string",
+        ftype="string",
         comment="User phone",
         options={"deprecated": False},
     )

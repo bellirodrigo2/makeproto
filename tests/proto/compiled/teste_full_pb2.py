@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10teste_full.proto\x12\nexample.v1\"\x1e\n\x0bUserRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\x05\"Q\n\x04User\x12\x0e\n\x02id\x18\x01 \x01(\x05\x42\x02\x18\x00\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x05\x65mail\x18\x03 \x01(\tH\x00\x12\x0f\n\x05phone\x18\x04 \x01(\tH\x00\x42\t\n\x07\x63ontact*/\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x41\x43TIVE\x10\x01\x12\x0c\n\x08INACTIVE\x10\x02\x32M\n\x0bUserService\x12\x39\n\x07GetUser\x12\x17.example.v1.UserRequest\x1a\x10.example.v1.User\"\x03\x90\x02\x02\x1a\x03\x88\x02\x00\x42\x15\n\x13\x63om.example.user.v1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10teste_full.proto\x12\nexample.v1\"Q\n\x04User\x12\x0e\n\x02id\x18\x01 \x01(\x05\x42\x02\x18\x00\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0f\n\x05\x65mail\x18\x03 \x01(\tH\x00\x12\x0f\n\x05phone\x18\x04 \x01(\tH\x00\x42\t\n\x07\x63ontact\"\x1e\n\x0bUserRequest\x12\x0f\n\x07user_id\x18\x01 \x01(\x05*/\n\x06Status\x12\x0b\n\x07UNKNOWN\x10\x00\x12\n\n\x06\x41\x43TIVE\x10\x01\x12\x0c\n\x08INACTIVE\x10\x02\x32M\n\x0bUserService\x12\x39\n\x07GetUser\x12\x17.example.v1.UserRequest\x1a\x10.example.v1.User\"\x03\x90\x02\x02\x1a\x03\x88\x02\x00\x42\x15\n\x13\x63om.example.user.v1b\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'teste_full_pb2', globals())
@@ -29,10 +29,10 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _USERSERVICE.methods_by_name['GetUser']._serialized_options = b'\220\002\002'
   _STATUS._serialized_start=147
   _STATUS._serialized_end=194
-  _USERREQUEST._serialized_start=32
-  _USERREQUEST._serialized_end=62
-  _USER._serialized_start=64
-  _USER._serialized_end=145
+  _USER._serialized_start=32
+  _USER._serialized_end=113
+  _USERREQUEST._serialized_start=115
+  _USERREQUEST._serialized_end=145
   _USERSERVICE._serialized_start=196
   _USERSERVICE._serialized_end=273
 # @@protoc_insertion_point(module_scope)

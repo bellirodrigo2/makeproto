@@ -11,11 +11,6 @@ enum Status {
   ACTIVE = 1;
   INACTIVE = 2;
 }
-  /* Request message to get a user by ID */
-message UserRequest {
-  // ID of the user
-int32 user_id = 1;
-}
   /* User entity */
 message User {
   // Unique ID
@@ -38,6 +33,11 @@ rpc GetUser(UserRequest) returns (User) {
   option idempotency_level = IDEMPOTENT;
 }
 
+}
+  /* Request message to get a user by ID */
+message UserRequest {
+  // ID of the user
+int32 user_id = 1;
 }
 
 

@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, Generic, List, Literal, Optional, TypeVar, Union
+from typing import Any, Dict, Generic, List, Literal, Optional, Set, TypeVar, Union
 
 from makeproto.prototypes import EnumOption
 
@@ -27,7 +27,7 @@ class HasOptions:
 
 @dataclass
 class Field(HasComment, HasOptions):
-    type: str
+    ftype: str
     name: str
     number: int
 
@@ -35,7 +35,7 @@ class Field(HasComment, HasOptions):
         return asdict(self)
 
     def __hash__(self):
-        return hash((self.name, self.type, self.number))
+        return hash((self.name, self.ftype, self.number))
 
     def __eq__(self, other: Any):
 
@@ -44,7 +44,7 @@ class Field(HasComment, HasOptions):
 
         return (
             self.name == other.name
-            and self.type == other.type
+            and self.ftype == other.ftype
             and self.number == other.number
         )
 
@@ -53,18 +53,57 @@ class Field(HasComment, HasOptions):
         cls,
         name: str,
         number: int,
-        type_: str = "",
+        ftype: str = "",
         comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
     ) -> "Field":
         return cls(
-            type=type_,
+            ftype=ftype,
             name=name,
             number=number,
             comment=comment or "",
             options=options or {},
         )
 
+@dataclass
+class Field2(HasComment, HasOptions):
+    ftype: type[Any]
+    name: str
+    number: int
+
+    def to_dict(self):
+        return asdict(self)
+
+    def __hash__(self):
+        return hash((self.name, self.ftype, self.number))
+
+    def __eq__(self, other: Any):
+
+        if not isinstance(other, Field2):
+            return False
+
+        return (
+            self.name == other.name
+            and self.ftype == other.ftype
+            and self.number == other.number
+        )
+
+    @classmethod
+    def make(
+        cls,
+        name: str,
+        number: int,
+        ftype: type[Any],
+        comment: Optional[str] = None,
+        options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
+    ) -> "Field2":
+        return cls(
+            ftype=ftype,
+            name=name,
+            number=number,
+            comment=comment or "",
+            options=options or {},
+        )
 
 @dataclass
 class Method(HasComment, HasOptions):
@@ -74,6 +113,9 @@ class Method(HasComment, HasOptions):
     request_stream: bool
     response_stream: bool
 
+    req_prefix:Optional[str]=None
+    resp_prefix:Optional[str]=None
+
     def to_dict(self):
         _asdict = asdict(self)
 
@@ -81,6 +123,16 @@ class Method(HasComment, HasOptions):
         _asdict["response_type"] = self.response_type.__name__
 
         return _asdict
+
+
+    def __hash__(self):
+        return hash(self.method_name,)
+
+    def __eq__(self, other: Any):
+        if not isinstance(other, Method):
+            return False
+        return self.method_name == other.method_name
+
 
     @classmethod
     def make(
@@ -118,19 +170,18 @@ class Method(HasComment, HasOptions):
 @dataclass
 class Block(Generic[T], HasComment, HasOptions, ProtoModule):
     name: str
-    block_type: str  # message, enum, oneof, service
+    block_type: Literal["message", "enum", "oneof", "service"]
     fields: List[T]
+
+    def __iter__(self):
+        return iter(self.fields)
 
     def __hash__(self):
         return hash(
             (
                 self.protofile,
-                self.package,
                 self.name,
                 self.block_type,
-                tuple(self.fields),
-                self.comment,
-                frozenset(self.options.items()),
             )
         )
 
@@ -139,12 +190,8 @@ class Block(Generic[T], HasComment, HasOptions, ProtoModule):
             return False
         return (
             self.protofile == other.protofile
-            and self.package == other.package
             and self.name == other.name
             and self.block_type == other.block_type
-            and self.fields == other.fields
-            and self.comment == other.comment
-            and self.options == other.options
         )
 
     @classmethod
@@ -179,27 +226,28 @@ ServiceBlock = Block[Method]
 
 
 @dataclass
-class ProtoFile(HasComment, HasOptions):
+class ProtoFile(HasComment, HasOptions,ProtoModule):
     version: str
-    package_name: str
-    imports: List[str]
-    blocks: List[Block[Union[Field, Method]]]
+    imports: Set[str]
+    blocks: Set[Union[EnumBlock, MessageBlock, ServiceBlock]]
 
     @classmethod
     def make(
         cls,
-        version: int,
-        package_name: str,
-        imports: List[str],
-        blocks: List[Block[Union[Field, Method]]],
-        comment: str = "",
+        protofile_name:str,
+        package_name: Optional[str]=None,
+        imports: Optional[Set[str]]=None,
+        blocks: Optional[List[Union[EnumBlock, MessageBlock, ServiceBlock]]]=None,
+        version: int = 3,
+        comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
     ) -> "ProtoFile":
         return cls(
             version=str(version),
-            package_name=package_name,
-            imports=imports,
-            blocks=blocks,
-            comment=comment,
+            protofile = protofile_name,
+            package=package_name,
+            imports=imports or set([]),
+            blocks=set(blocks or []),
+            comment=comment or '',
             options=options or {},
         )
