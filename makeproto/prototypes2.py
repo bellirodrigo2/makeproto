@@ -1,64 +1,70 @@
-from dataclasses import dataclass, field
-from enum import IntEnum
-from typing import Any, Dict, Generic, List, Optional, TypeVar, Union
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 
+class EnumValue(str):
+    pass
+
+class ProtoOption(Dict[str, Union[str, bool, EnumValue]]):
+    pass
 
 class BaseProto:
     @classmethod
     def prototype(cls) -> str:
         raise NotImplementedError("Subclasses should implement 'prototype'.")
 
+class ProtoMeta:
+    protofile: str
+    package: str
 
 class ProtoHeader:
-    __proto_file__: str
-    __proto_package__: str
+    comment: str = ""
+    options: ProtoOption = ProtoOption()
+    reserved: List[str]
 
-    @classmethod
-    def protofile(cls) -> str:
-        return f"{cls.__proto_file__.rstrip('.proto')}.proto"
-
-    @classmethod
-    def package(cls) -> str:
-        return cls.__proto_package__
-
-
-class BaseMessage(BaseProto, ProtoHeader):
-
+class BaseMessage(BaseProto, ProtoMeta,ProtoHeader):
     @classmethod
     def prototype(cls) -> str:
         return cls.__name__
 
     @classmethod
     def qualified_prototype(cls) -> str:
-        return f"{cls.package()}.{cls.__name__}"
-
+        return f"{cls.package}.{cls.__name__}"
 
 class BaseField(BaseProto):
     pass
 
 
 class BaseStringField(str, BaseField):
-    @classmethod
-    def python_type(cls) -> type[str]:
-        return str
+    pass
+    # @classmethod
+    # def python_type(cls) -> type[str]:
+        # return str
 
 
 class BaseIntField(int, BaseField):
-    @classmethod
-    def python_type(cls) -> type[int]:
-        return int
+    pass
+    # @classmethod
+    # def python_type(cls) -> type[int]:
+        # return int
 
 
 class BaseFloatField(float, BaseField):
-    @classmethod
-    def python_type(cls) -> type[float]:
-        return float
+    pass
+    # @classmethod
+    # def python_type(cls) -> type[float]:
+        # return float
 
 
 class BaseBytesField(bytes, BaseField):
-    @classmethod
-    def python_type(cls) -> type[bytes]:
-        return bytes
+    pass
+    # @classmethod
+    # def python_type(cls) -> type[bytes]:
+        # return bytes
 
 
 class BaseBoolField(BaseField):
@@ -71,9 +77,9 @@ class BaseBoolField(BaseField):
     def __repr__(self) -> str:
         return str(self._value)
 
-    @classmethod
-    def python_type(cls) -> type[bool]:
-        return bool
+    # @classmethod
+    # def python_type(cls) -> type[bool]:
+        # return bool
 
 
 class Double(BaseFloatField):
@@ -174,37 +180,30 @@ DEFAULT_PRIMITIVES: dict[type[Any], str] = {
     bool: Bool.prototype(),
 }
 
-
-class Enum(ProtoHeader, IntEnum):
-    pass
-
-
-T = TypeVar("T")
-
-
-class OneOf(BaseField, Generic[T]): ...
-
-
-class EnumOption:
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-    def __str__(self) -> str:
-        return self.name
+allowed_map_key: List[type[BaseProto]] = [
+    Int32,
+    Int64,
+    UInt32,
+    UInt64,
+    SInt32,
+    SInt64,
+    Fixed32,
+    Fixed64,
+    SFixed32,
+    SFixed64,
+    Bool,
+    String,
+]
 
 
-@dataclass(frozen=True)
 class FieldSpec:
-    options: Dict[str, Union[str, bool, EnumOption]] = field(default_factory=dict)
-    comment: str = field(default="")
+    def __init__(self,comment: str = "",options: Optional[ProtoOption] =None, index:int = 0, **meta: Any) -> None:
+        self.comment = comment
+        self.options = options or ProtoOption() 
+        self.index = index       
+        self.meta = meta
 
-
-@dataclass(frozen=True)
-class MessageSpec(FieldSpec):
-    reserved: List[Union[int, List[int]]] = field(default_factory=list)
-
-
-@dataclass
-class OneOfKey:
-    key: str
-    spec: Optional[FieldSpec] = None
+class OneOf(FieldSpec):
+    def __init__(self, key: str,comment: str = "",options: Optional[ProtoOption] =None, **meta: Any):
+        self.key = key
+        super().__init__(comment,options, **meta)

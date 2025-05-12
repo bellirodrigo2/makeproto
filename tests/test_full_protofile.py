@@ -1,10 +1,9 @@
 from pathlib import Path
 
-
+from makeproto.compile_proto import compile
 from makeproto.models import Block, Field, Method, ProtoFile
 from makeproto.prototypes import EnumOption
 from makeproto.templates import render_protofile
-from makeproto.compile_proto import compile
 
 # Campos reutilizáveis
 field1 = Field.make(
@@ -14,8 +13,8 @@ field2 = Field.make("name", 2, "string", comment="Full name")  # REMOVIDO 'requi
 
 # Enum
 enum_block = Block.make(
-    protofile='proto1',
-    package='package1',
+    protofile="proto1",
+    package="package1",
     name="Status",
     block_type="enum",
     fields=[
@@ -28,8 +27,8 @@ enum_block = Block.make(
 
 # OneOf block
 oneof_block = Block.make(
-    protofile='proto1',
-    package='package1',
+    protofile="proto1",
+    package="package1",
     name="contact",
     block_type="oneof",
     fields=[
@@ -41,8 +40,8 @@ oneof_block = Block.make(
 
 # Mensagem User
 message_block = Block.make(
-    protofile='proto1',
-    package='package1',
+    protofile="proto1",
+    package="package1",
     name="User",
     block_type="message",
     fields=[
@@ -55,8 +54,8 @@ message_block = Block.make(
 
 # Mensagem UserRequest — AGORA DEFINIDA
 user_request_block = Block.make(
-    protofile='proto1',
-    package='package1',
+    protofile="proto1",
+    package="package1",
     name="UserRequest",
     block_type="message",
     fields=[
@@ -86,8 +85,8 @@ method = Method.make(
 )
 
 service_block = Block.make(
-    protofile='proto1',
-    package='package1',
+    protofile="proto1",
+    package="package1",
     name="UserService",
     block_type="service",
     fields=[method],

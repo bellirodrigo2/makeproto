@@ -8,11 +8,11 @@ from makeproto.prototypes import (
     DEFAULT_PRIMITIVES,
     BaseMessage,
     BaseProto,
+    Enum,
     EnumOption,
     FieldSpec,
     OneOf,
     OneOfKey,
-    Enum
 )
 
 
@@ -59,7 +59,8 @@ def get_type(bt: Optional[type[Any]]) -> Optional[str]:
 
     return DEFAULT_PRIMITIVES.get(bt, None)
 
-def validate_type(bt:Optional[type[Any]]):
+
+def validate_type(bt: Optional[type[Any]]):
 
     if bt is None or not isinstance(bt, type):  # type: ignore
         return False
@@ -71,7 +72,7 @@ def validate_type(bt:Optional[type[Any]]):
 
 
 def validate_arg(arg: FuncArg):
-    
+
     bt = arg.basetype
     origin = arg.origin
     args = arg.args
@@ -175,7 +176,6 @@ def get_spec(
 
     comment, options = None, None
     for arg in args:
-
         if arg.has_default:
             if arg.istype(FieldSpec) and isinstance(arg.default, FieldSpec):
                 comment = arg.default.comment
@@ -273,6 +273,7 @@ def make_msgblock(
 
     return block
 
+
 def get_oneof_details2(
     arg: FuncArg,
 ) -> Optional[tuple[str, str, Any, Optional[FieldSpec]]]:
@@ -284,11 +285,10 @@ def get_oneof_details2(
 
     args = arg.args
     isvalid = validate_type(args[0])
-    if isvalid :
+    if isvalid:
         raise TypeError(f"At arg: {arg.name}, OneOf type not allowed: {type(args[0])}")
 
     return oneofkey, arg.name, args[0], spec
-
 
 
 def make_msgblock2(cls: type[BaseMessage], ignore_error: bool = True) -> MessageBlock:
@@ -389,8 +389,12 @@ def make_enumblock(enum: type[Enum]) -> EnumBlock:
             raise TypeError(f"Enum Values should be positive int only. got {value}")
         fields.append(Field.make(name, value))
 
-    enumBlock: EnumBlock = Block.make(protofile=protofile,package=package,
-        name=enum.__name__, block_type="enum", fields=fields
+    enumBlock: EnumBlock = Block.make(
+        protofile=protofile,
+        package=package,
+        name=enum.__name__,
+        block_type="enum",
+        fields=fields,
     )
     return enumBlock
 

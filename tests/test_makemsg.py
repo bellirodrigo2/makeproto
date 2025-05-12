@@ -12,6 +12,7 @@ from makeproto.prototypes import (
     BaseMessage,
     Bool,
     Bytes,
+    Enum,
     FieldSpec,
     Fixed64,
     Int32,
@@ -19,14 +20,13 @@ from makeproto.prototypes import (
     OneOfKey,
     String,
     UInt32,
-    Enum
 )
 
 
 class MyEnum(Enum):
 
-    __proto_file__ = 'proto'
-    __proto_package__ = 'pack1'
+    __proto_file__ = "proto"
+    __proto_package__ = "pack1"
 
     VALID = 0
     INVALID = 1
@@ -34,8 +34,8 @@ class MyEnum(Enum):
 
 class Enum2(Enum):
 
-    __proto_file__ = 'proto'
-    __proto_package__ = 'pack1'
+    __proto_file__ = "proto"
+    __proto_package__ = "pack1"
 
     FOO = 0
     BAR = 1
@@ -44,8 +44,8 @@ class Enum2(Enum):
 @dataclass
 class Hello(BaseMessage):
 
-    __proto_file__ = 'proto'
-    __proto_package__ = 'pack1'
+    __proto_file__ = "proto"
+    __proto_package__ = "pack1"
 
     ga: type
     nou: tuple[str, ...]
@@ -109,8 +109,8 @@ def test_get_template_fail2():
     @dataclass
     class Fail(BaseMessage):
 
-        __proto_file__ = 'proto'
-        __proto_package__ = 'pack1'
+        __proto_file__ = "proto"
+        __proto_package__ = "pack1"
         aca: str = "hello"
 
     with pytest.raises(ValueError, match="Data Field cannot "):

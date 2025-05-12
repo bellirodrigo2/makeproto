@@ -14,6 +14,10 @@ class ProtoModule:
     def __post_init__(self):
         self.protofile = f'{self.protofile.rstrip(".proto")}.proto'
 
+@dataclass
+class HasMeta:
+    comment:str
+    options: Dict[str, Union[str, bool, EnumOption]]
 
 @dataclass
 class HasComment:
@@ -65,8 +69,9 @@ class Field(HasComment, HasOptions):
             options=options or {},
         )
 
+
 @dataclass
-class Field2(HasComment, HasOptions):
+class Field2(HasMeta):
     ftype: type[Any]
     name: str
     number: int
@@ -88,23 +93,6 @@ class Field2(HasComment, HasOptions):
             and self.number == other.number
         )
 
-    @classmethod
-    def make(
-        cls,
-        name: str,
-        number: int,
-        ftype: type[Any],
-        comment: Optional[str] = None,
-        options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
-    ) -> "Field2":
-        return cls(
-            ftype=ftype,
-            name=name,
-            number=number,
-            comment=comment or "",
-            options=options or {},
-        )
-
 @dataclass
 class Method(HasComment, HasOptions):
     method_name: str
@@ -113,8 +101,8 @@ class Method(HasComment, HasOptions):
     request_stream: bool
     response_stream: bool
 
-    req_prefix:Optional[str]=None
-    resp_prefix:Optional[str]=None
+    req_prefix: Optional[str] = None
+    resp_prefix: Optional[str] = None
 
     def to_dict(self):
         _asdict = asdict(self)
@@ -124,15 +112,15 @@ class Method(HasComment, HasOptions):
 
         return _asdict
 
-
     def __hash__(self):
-        return hash(self.method_name,)
+        return hash(
+            self.method_name,
+        )
 
     def __eq__(self, other: Any):
         if not isinstance(other, Method):
             return False
         return self.method_name == other.method_name
-
 
     @classmethod
     def make(
@@ -219,6 +207,43 @@ class Block(Generic[T], HasComment, HasOptions, ProtoModule):
         )
 
 
+@dataclass
+class Block2(Generic[T], HasMeta, ProtoModule):
+    name: str
+    block_type: Literal["message", "enum", "oneof", "service"]
+    fields: List[T]
+    reserved: List[str]
+
+    def __post_init__(self):
+
+        #checar consistencia do block_type vs dos fields...
+        #se services...fields method only...
+        #se enum....field only com type = ''
+        #se message, fields ou oneof blocks
+        #se oneof...fields only
+        ...
+
+    def __iter__(self):
+        return iter(self.fields)
+
+    def __hash__(self):
+        return hash(
+            (
+                self.protofile,
+                self.name,
+                self.block_type,
+            )
+        )
+
+    def __eq__(self, other: Any):
+        if not isinstance(other, Block):
+            return False
+        return (
+            self.protofile == other.protofile
+            and self.name == other.name
+            and self.block_type == other.block_type
+        )
+
 EnumBlock = Block[Field]
 OneOfBlock = Block[Field]
 MessageBlock = Block[Union[Field, OneOfBlock]]
@@ -226,7 +251,7 @@ ServiceBlock = Block[Method]
 
 
 @dataclass
-class ProtoFile(HasComment, HasOptions,ProtoModule):
+class ProtoFile(HasComment, HasOptions, ProtoModule):
     version: str
     imports: Set[str]
     blocks: Set[Union[EnumBlock, MessageBlock, ServiceBlock]]
@@ -234,20 +259,20 @@ class ProtoFile(HasComment, HasOptions,ProtoModule):
     @classmethod
     def make(
         cls,
-        protofile_name:str,
-        package_name: Optional[str]=None,
-        imports: Optional[Set[str]]=None,
-        blocks: Optional[List[Union[EnumBlock, MessageBlock, ServiceBlock]]]=None,
+        protofile_name: str,
+        package_name: Optional[str] = None,
+        imports: Optional[Set[str]] = None,
+        blocks: Optional[List[Union[EnumBlock, MessageBlock, ServiceBlock]]] = None,
         version: int = 3,
         comment: Optional[str] = None,
         options: Optional[Dict[str, Union[str, bool, EnumOption]]] = None,
     ) -> "ProtoFile":
         return cls(
             version=str(version),
-            protofile = protofile_name,
+            protofile=protofile_name,
             package=package_name,
             imports=imports or set([]),
             blocks=set(blocks or []),
-            comment=comment or '',
+            comment=comment or "",
             options=options or {},
         )

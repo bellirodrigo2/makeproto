@@ -5,10 +5,16 @@ from makeproto.exceptions import (
     InconsistentPackageNameError,
 )
 from makeproto.makemsg import cls_to_blocks
-from makeproto.models import EnumBlock, Field, MessageBlock, Method, ProtoFile, ServiceBlock
+from makeproto.models import (
+    EnumBlock,
+    Field,
+    MessageBlock,
+    Method,
+    ProtoFile,
+    ServiceBlock,
+)
 from makeproto.prototypes import BaseMessage, Enum
 from makeproto.templates import render_protofile
-
 
 
 @dataclass
@@ -18,7 +24,7 @@ class ProtoFileBuilder:
     def __iter__(self):
         return iter(self.pf.blocks)
 
-    def _find_block(self, name:str, block_type:str):
+    def _find_block(self, name: str, block_type: str):
         for block in self.pf.blocks:
             if block.name == name and block.block_type == block_type:
                 return block
@@ -42,9 +48,10 @@ class ProtoFileBuilder:
                 tgt.name,
             )
         self.pf.blocks.add(tgt)
-        
-def get_obj(field:Field)->Union[BaseMessage, Enum, None]:
-    ...
+
+
+def get_obj(field: Field) -> Union[BaseMessage, Enum, None]: ...
+
 
 @dataclass
 class Protobuilder:
@@ -56,11 +63,13 @@ class Protobuilder:
         thisprotofile = self.files.get(service.name, None)
 
         if thisprotofile is None:
-            pf = ProtoFile.make(protofile_name=service.protofile, package_name=service.package)
+            pf = ProtoFile.make(
+                protofile_name=service.protofile, package_name=service.package
+            )
             builder = ProtoFileBuilder(pf)
             self.files[service.protofile] = builder
             thisprotofile = builder
-            
+
         thisprotofile.add_block(service)
 
         requests = [m.request_type for m in service.fields]
@@ -68,25 +77,27 @@ class Protobuilder:
 
         classes: set[type[Any]] = set(requests) | set(responses)
 
-        blocks:set[Union[MessageBlock, EnumBlock]] = set()
+        blocks: set[Union[MessageBlock, EnumBlock]] = set()
         for cls in classes:
             msgs = cls_to_blocks(cls)
             blocks.update(msgs)
-        
+
         for block in blocks:
 
             msg_protofile = self.files.get(block.protofile)
 
             if msg_protofile is None:
-                pf = ProtoFile.make(protofile_name=block.protofile, package_name=block.package)
+                pf = ProtoFile.make(
+                    protofile_name=block.protofile, package_name=block.package
+                )
                 builder = ProtoFileBuilder(pf)
                 self.files[block.protofile] = builder
                 msg_protofile = builder
 
             msg_protofile.add_block(block)
 
-    def _normalize(self)->None:
-        
+    def _normalize(self) -> None:
+
         for protofile in self.files.values():
             for block in protofile:
                 for field in block:
@@ -103,7 +114,7 @@ class Protobuilder:
                     else:
                         raise
 
-    def render(self) -> Dict[str,str]:
+    def render(self) -> Dict[str, str]:
 
         self._normalize()
 
@@ -111,12 +122,13 @@ class Protobuilder:
 
         for filename, file in self.files.items():
             proto_str = render_protofile(file.pf)
-            rendered[filename] = proto_str  
+            rendered[filename] = proto_str
         return rendered
 
+
 class SafeProtobuilder(Protobuilder):
-    
-    def render(self) -> Dict[str,str]:
+
+    def render(self) -> Dict[str, str]:
 
         # checar consistencia entre protofiles e packages novamente.
         # checar consistencia entre os index... reserved

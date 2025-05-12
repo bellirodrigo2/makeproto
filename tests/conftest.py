@@ -18,7 +18,7 @@ from makeproto.prototypes import (
 
 class TesteMessage(BaseMessage):
     __proto_file__ = "teste"
-    __proto_package__ = 'pack1'
+    __proto_package__ = "pack1"
 
 
 @dataclass
@@ -56,8 +56,8 @@ class Code(TesteMessage):
 
 class ProductArea(Enum):
 
-    __proto_file__ = 'proto'
-    __proto_package__ = 'pack1'
+    __proto_file__ = "proto"
+    __proto_package__ = "pack1"
 
     Area1 = 0
     Area2 = 1
@@ -66,8 +66,8 @@ class ProductArea(Enum):
 
 class Enum2(Enum):
 
-    __proto_file__ = 'proto'
-    __proto_package__ = 'pack1'
+    __proto_file__ = "proto"
+    __proto_package__ = "pack1"
 
     e1 = 0
     e2 = 1

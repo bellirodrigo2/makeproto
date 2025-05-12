@@ -19,6 +19,9 @@ def define_oneof_fields(cls: type[BaseMessage]) -> None:
 
 class Message(BaseMessage):
 
+    _oneof: dict[str, set[str]]
+    _selected: dict[str, str]
+
     def __new__(cls: type[Any], *args: Any, **kwargs: Any) -> Any:
         self = super().__new__(cls)
         object.__setattr__(self, "_selected", {})

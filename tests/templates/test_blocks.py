@@ -69,8 +69,12 @@ def test_block_without_options_or_comment(
     block_type, block_class, request, field_fixture
 ):
     field = request.getfixturevalue(field_fixture)
-    block = block_class.make(protofile='proto',package='pack',
-        name=f"My{block_type.title()}", block_type=block_type, fields=[field]
+    block = block_class.make(
+        protofile="proto",
+        package="pack",
+        name=f"My{block_type.title()}",
+        block_type=block_type,
+        fields=[field],
     )
     rendered_fields = [render_obj(f) for f in block.fields]
     for r in rendered_fields:
@@ -88,8 +92,12 @@ def test_block_without_options_or_comment(
 )
 def test_block_with_field_options(block_type, block_class, request, field_fixture):
     field = request.getfixturevalue(field_fixture)
-    block = block_class.make(protofile='proto',package='pack',
-        name=f"My{block_type.title()}", block_type=block_type, fields=[field]
+    block = block_class.make(
+        protofile="proto",
+        package="pack",
+        name=f"My{block_type.title()}",
+        block_type=block_type,
+        fields=[field],
     )
     rendered = [render_obj(f) for f in block.fields][0]
     assert "[deprecated = true]" in rendered
@@ -105,15 +113,21 @@ def test_service_block_with_method_options(
     block_type, block_class, request, method_fixture
 ):
     method = request.getfixturevalue(method_fixture)
-    block = block_class.make(protofile='proto',package='pack',name="MyService", block_type=block_type, fields=[method])
+    block = block_class.make(
+        protofile="proto",
+        package="pack",
+        name="MyService",
+        block_type=block_type,
+        fields=[method],
+    )
     rendered = [render_obj(m) for m in block.fields][0]
     assert 'option opt1 = "value1";' in rendered
 
 
 def test_block_with_comment_and_options(simple_field):
     block = MessageBlock.make(
-        protofile='proto1',
-        package='pack1',
+        protofile="proto1",
+        package="pack1",
         name="User",
         block_type="message",
         fields=[simple_field],
@@ -126,8 +140,8 @@ def test_block_with_comment_and_options(simple_field):
 
 def test_message_block_with_oneof(simple_field):
     oneof = OneOfBlock.make(
-        protofile='proto1',
-        package='pack1',
+        protofile="proto1",
+        package="pack1",
         name="my_union",
         block_type="oneof",
         fields=[simple_field],
@@ -135,8 +149,8 @@ def test_message_block_with_oneof(simple_field):
     )
 
     msg_block = MessageBlock.make(
-        protofile='proto1',
-        package='pack1',
+        protofile="proto1",
+        package="pack1",
         name="Container",
         block_type="message",
         fields=[oneof],
@@ -179,8 +193,8 @@ def test_message_block_with_fields_and_oneof_with_options_and_comments():
 
     # OneOfBlock com comentário e opções
     oneof = OneOfBlock.make(
-        protofile='proto1',
-        package='pack1',
+        protofile="proto1",
+        package="pack1",
         name="contact",
         block_type="oneof",
         fields=[oneof_field1, oneof_field2],
@@ -190,8 +204,8 @@ def test_message_block_with_fields_and_oneof_with_options_and_comments():
 
     # MessageBlock contendo o field normal e o oneof
     message = MessageBlock.make(
-        protofile='proto1',
-        package='pack1',
+        protofile="proto1",
+        package="pack1",
         name="UserProfile",
         block_type="message",
         fields=[direct_field, oneof],
