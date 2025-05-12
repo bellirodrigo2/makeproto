@@ -1,5 +1,7 @@
-from makeproto.makemsg import cls_to_blocks
-from makeproto.prototypes import BaseMessage, Enum
+from enum import Enum
+
+from makeproto.makemsg2 import cls_to_blocks
+from makeproto.prototypes2 import BaseMessage
 
 
 def test_chanied(
@@ -10,7 +12,7 @@ def test_chanied(
     product: type[BaseMessage],
     enum2: type[Enum],
     requisition: type[BaseMessage],
-):
+) -> None:
 
     msgs = cls_to_blocks(requisition)
 
@@ -22,3 +24,4 @@ def test_chanied(
     assert product.__name__ in msg_names
     assert enum2.__name__ in msg_names
     assert requisition.__name__ in msg_names
+    assert len(msg_names) == 7

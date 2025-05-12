@@ -4,16 +4,16 @@ from typing import Annotated
 import pytest
 
 from makeproto.message import Message, define_oneof_fields
-from makeproto.prototypes import BaseMessage, Bool, Int32, OneOf, OneOfKey
+from makeproto.prototypes2 import BaseMessage, Bool, Int32, OneOf
 
 
 @dataclass
 class Message1(Message):
-    a: Annotated[OneOf[str], OneOfKey("choice")]
-    b: Annotated[OneOf[bytes], 123, "helloworld", OneOfKey("choice")]
-    c: Annotated[OneOf[int], OneOfKey("choice")]
-    d: Annotated[OneOf[Int32], OneOfKey("outro")]
-    e: Annotated[OneOf[Bool], [], OneOfKey("outro")]
+    a: Annotated[str, OneOf("choice")]
+    b: Annotated[bytes, 123, "helloworld", OneOf("choice")]
+    c: Annotated[int, OneOf("choice")]
+    d: Annotated[Int32, OneOf("outro")]
+    e: Annotated[Bool, [], OneOf("outro")]
 
 
 @dataclass
@@ -22,11 +22,11 @@ class Message2(Message): ...
 
 @dataclass
 class Message3(Message2):
-    a: Annotated[OneOf[str], OneOfKey("choice")]
-    b: Annotated[OneOf[bytes], 123, "helloworld", OneOfKey("choice")]
-    c: Annotated[OneOf[int], OneOfKey("choice")]
-    d: Annotated[OneOf[Int32], OneOfKey("outro")]
-    e: Annotated[OneOf[Bool], [], OneOfKey("outro")]
+    a: Annotated[str, OneOf("choice")]
+    b: Annotated[bytes, 123, "helloworld", OneOf("choice")]
+    c: Annotated[int, OneOf("choice")]
+    d: Annotated[Int32, OneOf("outro")]
+    e: Annotated[Bool, [], OneOf("outro")]
 
 
 define_oneof_fields(Message1)
@@ -34,7 +34,7 @@ define_oneof_fields(Message3)
 
 
 @pytest.mark.parametrize("MSG", [Message1, Message3])
-def test_msg(MSG: BaseMessage):
+def test_msg(MSG: BaseMessage) -> None:
 
     msg = MSG(a=None, b=b"foobar", c=None, d=32, e=None)
 
@@ -57,7 +57,7 @@ def test_msg(MSG: BaseMessage):
     assert msg.WhichOneof("outro") == "e"
 
 
-def test_multiple_set_same_oneof_should_fail():
+def test_multiple_set_same_oneof_should_fail() -> None:
     msg = Message1(a="hello", b=b"world", c=None, d=None, e=None)
     # Apenas o último campo definido deve permanecer
     assert msg.a is None
@@ -65,7 +65,7 @@ def test_multiple_set_same_oneof_should_fail():
     assert msg.WhichOneof("choice") == "b"
 
 
-def test_switching_oneof_field_runtime():
+def test_switching_oneof_field_runtime() -> None:
     msg = Message1(a="init", b=None, c=None, d=None, e=None)
 
     assert msg.WhichOneof("choice") == "a"
@@ -81,7 +81,7 @@ def test_switching_oneof_field_runtime():
 
 @dataclass
 class MessageWithExtra(Message):
-    a: Annotated[OneOf[str], OneOfKey("x")]
+    a: Annotated[str, OneOf("x")]
     x: int = 0
 
 
@@ -110,25 +110,25 @@ def test_no_oneof_set():
 
 @dataclass
 class BaseMessageWithExtra(Message):
-    x: Annotated[OneOf[int], OneOfKey("mix")]
+    x: Annotated[int, OneOf("mix")]
 
 
 @dataclass
 class ComplexMessage(BaseMessageWithExtra):
-    y: Annotated[OneOf[str], OneOfKey("mix")]
+    y: Annotated[str, OneOf("mix")]
 
 
 define_oneof_fields(ComplexMessage)
 
 
-def test_multiple_inheritance_oneof():
+def test_multiple_inheritance_oneof() -> None:
     msg = ComplexMessage(x=None, y="go")
     assert msg.x is None
     assert msg.y == "go"
     assert msg.WhichOneof("mix") == "y"
 
 
-def test_dynamic_attribute_setting():
+def test_dynamic_attribute_setting() -> None:
     msg = Message1(a="start", b=None, c=None, d=None, e=None)
     setattr(msg, "b", b"bytes")
     assert msg.a is None

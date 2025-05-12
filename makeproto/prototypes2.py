@@ -1,32 +1,32 @@
-from typing import (
-    Any,
-    Dict,
-    List,
-    Optional,
-    Union,
-)
+from typing import Any, Dict, List, Optional, Union
+
 
 class EnumValue(str):
     pass
 
+
 class ProtoOption(Dict[str, Union[str, bool, EnumValue]]):
     pass
+
 
 class BaseProto:
     @classmethod
     def prototype(cls) -> str:
         raise NotImplementedError("Subclasses should implement 'prototype'.")
 
+
 class ProtoMeta:
     protofile: str
     package: str
 
+
 class ProtoHeader:
     comment: str = ""
     options: ProtoOption = ProtoOption()
-    reserved: List[str]
+    reserved: List[str] = []
 
-class BaseMessage(BaseProto, ProtoMeta,ProtoHeader):
+
+class BaseMessage(BaseProto, ProtoMeta, ProtoHeader):
     @classmethod
     def prototype(cls) -> str:
         return cls.__name__
@@ -35,36 +35,25 @@ class BaseMessage(BaseProto, ProtoMeta,ProtoHeader):
     def qualified_prototype(cls) -> str:
         return f"{cls.package}.{cls.__name__}"
 
+
 class BaseField(BaseProto):
     pass
 
 
 class BaseStringField(str, BaseField):
     pass
-    # @classmethod
-    # def python_type(cls) -> type[str]:
-        # return str
 
 
 class BaseIntField(int, BaseField):
     pass
-    # @classmethod
-    # def python_type(cls) -> type[int]:
-        # return int
 
 
 class BaseFloatField(float, BaseField):
     pass
-    # @classmethod
-    # def python_type(cls) -> type[float]:
-        # return float
 
 
 class BaseBytesField(bytes, BaseField):
     pass
-    # @classmethod
-    # def python_type(cls) -> type[bytes]:
-        # return bytes
 
 
 class BaseBoolField(BaseField):
@@ -76,10 +65,6 @@ class BaseBoolField(BaseField):
 
     def __repr__(self) -> str:
         return str(self._value)
-
-    # @classmethod
-    # def python_type(cls) -> type[bool]:
-        # return bool
 
 
 class Double(BaseFloatField):
@@ -180,7 +165,10 @@ DEFAULT_PRIMITIVES: dict[type[Any], str] = {
     bool: Bool.prototype(),
 }
 
-allowed_map_key: List[type[BaseProto]] = [
+allowed_map_key: List[type[Any]] = [
+    int,
+    str,
+    bool,
     Int32,
     Int64,
     UInt32,
@@ -197,13 +185,26 @@ allowed_map_key: List[type[BaseProto]] = [
 
 
 class FieldSpec:
-    def __init__(self,comment: str = "",options: Optional[ProtoOption] =None, index:int = 0, **meta: Any) -> None:
+    def __init__(
+        self,
+        comment: str = "",
+        options: Optional[ProtoOption] = None,
+        index: int = 0,
+        **meta: Any,
+    ) -> None:
         self.comment = comment
-        self.options = options or ProtoOption() 
-        self.index = index       
+        self.options = options or ProtoOption()
+        self.index = index
         self.meta = meta
 
+
 class OneOf(FieldSpec):
-    def __init__(self, key: str,comment: str = "",options: Optional[ProtoOption] =None, **meta: Any):
+    def __init__(
+        self,
+        key: str,
+        comment: str = "",
+        options: Optional[ProtoOption] = None,
+        **meta: Any,
+    ):
         self.key = key
-        super().__init__(comment,options, **meta)
+        super().__init__(comment, options, **meta)

@@ -1,10 +1,12 @@
 from dataclasses import dataclass
+from typing import List, Optional
 
 import pytest
 
-from makeproto.makeservice import check_request_consistency, make_method
-from makeproto.models import Method
-from makeproto.prototypes import BaseMessage
+from makeproto.exceptions import ProtoBlockError
+from makeproto.makemsg2 import check_request_consistency, make_method
+from makeproto.models2 import Method
+from makeproto.prototypes2 import BaseMessage
 
 
 @dataclass
@@ -46,11 +48,9 @@ class InvalidType:
 # -------------------- Testes de sucesso --------------------
 
 
-def test_make_method_simple_function():
-    def handler(req: Req) -> Res:
-        return Res()
+def test_make_method_simple_function() -> None:
 
-    method = make_method(handler, Req, request_stream=False)
+    method = make_method("handler", Req, Res, False, False)
 
     assert isinstance(method, Method)
     assert method.method_name == "handler"
@@ -59,64 +59,48 @@ def test_make_method_simple_function():
     assert method.response_stream is False
 
 
-def test_make_method_with_generator_function():
-    def handler(req: Req) -> Res:
-        yield Res()
-
-    method = make_method(handler, Req, request_stream=False)
-    assert method.response_stream is True
-
-
-def test_make_method_with_async_generator():
-    async def handler(req: Req) -> Res:
-        yield Res()
-
-    method = make_method(handler, Req, request_stream=False)
-    assert method.response_stream is True
-
-
 # -------------------- Testes de erro --------------------
 
 
-def test_make_method_missing_return_type():
-    def handler(req: Req):
-        return Res()
+def test_make_method_missing_type() -> None:
 
-    with pytest.raises(TypeError, match="has no typed return"):
-        make_method(handler, Req, request_stream=False)
+    with pytest.raises(ProtoBlockError, match="1 Errors found on method"):
+        make_method("handler", Req, None, False, False)
+    with pytest.raises(
+        ProtoBlockError, match="Error on response argument type. Argument type is None"
+    ):
+        make_method("handler", Req, None, False, False)
 
-
-def test_make_method_invalid_request_type():
-    def handler(req: InvalidType) -> Res:
-        return Res()
-
-    with pytest.raises(TypeError, match="Argument is not a BaseMessage"):
-        make_method(handler, InvalidType, request_stream=False)
-
-
-def test_make_method_invalid_response_type():
-    def handler(req: Req) -> InvalidType:
-        return InvalidType()
-
-    with pytest.raises(TypeError, match="Argument is not a BaseMessage"):
-        make_method(handler, Req, request_stream=False)
+    with pytest.raises(ProtoBlockError, match="1 Errors found on method"):
+        make_method("handler", None, Res, False, False)
+    with pytest.raises(
+        ProtoBlockError, match="Error on request argument type. Argument type is None"
+    ):
+        make_method("handler", None, Res, False, False)
 
 
-def test_make_method_request_type_has_origin():
-    from typing import List
-
-    def handler(req: Req) -> Res:
-        return Res()
-
-    with pytest.raises(TypeError, match="Argument is not a type"):
-        make_method(handler, List[Req], request_stream=False)
+def test_make_method_invalid_request_type() -> None:
+    with pytest.raises(ProtoBlockError, match="Argument is not a BaseMessage"):
+        make_method("handler", InvalidType, Res, False, False)
 
 
-def test_check_request_consistency_with_none():
-    with pytest.raises(TypeError, match="Argument type is None"):
-        check_request_consistency(None, "func", "request")  # type: ignore
+def test_make_method_invalid_response_type() -> None:
+
+    with pytest.raises(ProtoBlockError, match="Argument is not a BaseMessage"):
+        make_method("handler", Req, InvalidType, False, False)
 
 
-def test_check_request_consistency_with_non_type():
-    with pytest.raises(TypeError, match="Argument is not a type"):
-        check_request_consistency("not_a_type", "func", "request")  # type: ignore
+def test_make_method_request_type_has_origin() -> None:
+
+    with pytest.raises(ProtoBlockError, match="Argument is not a type"):
+        make_method("handler", List[Req], Res, False, False)
+    with pytest.raises(ProtoBlockError, match="Argument is not a type"):
+        make_method("handler", Req, Optional[Res], False, False)
+
+
+def test_make_method_request_notype() -> None:
+
+    with pytest.raises(ProtoBlockError, match="Argument is not a type"):
+        make_method("handler", "List[Req]", Res, False, False)
+    with pytest.raises(ProtoBlockError, match="Argument is not a type"):
+        make_method("handler", Req, "Optional[Res]", False, False)

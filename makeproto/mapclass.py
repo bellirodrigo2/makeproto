@@ -1,15 +1,9 @@
 import sys
 from dataclasses import MISSING, Field, dataclass, fields, is_dataclass
-from typing import (
-    Annotated,
-    Any,
-    Optional,
-    Sequence,
-    TypeVar,
-    get_args,
-    get_origin,
-    get_type_hints,
-)
+from inspect import Parameter, signature
+from typing import Any, Optional, TypeVar, Union, get_args, get_origin, get_type_hints
+
+from typing_extensions import Annotated
 
 T = TypeVar("T")
 
@@ -53,7 +47,13 @@ class FuncArg:
 NO_DEFAULT = object()
 
 
-def resolve_default(field: Field[Any]) -> tuple[Any, ...]:
+def resolve_class_default(param: Parameter) -> tuple[bool, Any]:
+    if param.default is not Parameter.empty:
+        return True, param.default
+    return False, NO_DEFAULT
+
+
+def resolve_dataclass_default(field: Field[Any]) -> tuple[Any, ...]:
     if field.default is not MISSING:
         default = field.default
         has_default = True
@@ -66,14 +66,21 @@ def resolve_default(field: Field[Any]) -> tuple[Any, ...]:
     return has_default, default
 
 
-def dataclass_field_factory(
-    field: Field[Any], hint: Any, bt_default_fallback: bool = True
+def field_factory(
+    obj: Union[Field[Any], Parameter],
+    hint: Any,
+    bt_default_fallback: bool = True,
 ) -> FuncArg:
-    name = field.name
 
-    has_default, default = resolve_default(field)
+    resolve_default = (
+        resolve_class_default
+        if isinstance(obj, Parameter)
+        else resolve_dataclass_default
+    )
 
-    argtype = hint  # or (type(default) if default not in (NO_DEFAULT, None) else None)
+    has_default, default = resolve_default(obj)
+
+    argtype = hint
 
     if argtype is None and bt_default_fallback:
         argtype = type(default) if default not in (NO_DEFAULT, None) else None
@@ -86,7 +93,7 @@ def dataclass_field_factory(
         extras = tuple(extras_)
 
     return FuncArg(
-        name=name,
+        name=obj.name,
         argtype=argtype,
         basetype=basetype,
         default=default,
@@ -95,20 +102,21 @@ def dataclass_field_factory(
     )
 
 
-def get_dataclass_fields(
-    cls: type, bt_default_fallback: bool = True
-) -> Sequence[FuncArg]:
-    if not is_dataclass(cls):
-        raise TypeError(f"{cls.__name__} is not a dataclass.")  # type: ignore
+def map_class_fields(cls: type, bt_default_fallback: bool = True) -> list[FuncArg]:
+    if is_dataclass(cls):
+        items = [(f.name, f) for f in fields(cls)]
+        hint_source = cls
+    else:
+        sig = signature(cls.__init__)
+        items = [
+            (name, param) for name, param in sig.parameters.items() if name != "self"
+        ]
+        hint_source = cls.__init__
 
     hints = get_type_hints(
-        cls, globalns=vars(sys.modules[cls.__module__]), include_extras=True
+        hint_source, globalns=vars(sys.modules[cls.__module__]), include_extras=True
     )
-    result: list[FuncArg] = []
 
-    for field in fields(cls):
-        hint: Optional[type[Any]] = hints.get(field.name, None)
-        arg = dataclass_field_factory(field, hint, bt_default_fallback)
-        result.append(arg)
-
-    return result
+    return [
+        field_factory(obj, hints.get(name), bt_default_fallback) for name, obj in items
+    ]

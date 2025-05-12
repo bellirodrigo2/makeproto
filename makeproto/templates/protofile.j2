@@ -9,7 +9,7 @@ import "{{ imp }}";
   {% endfor %}
 {% endblock %}
 
-{% if package_name %}package {{ package_name }};{% endif %}
+{% if package %}package {{ package }};{% endif %}
 
 {% block options %}
     {% for key, val in (options or {}).items() %}

@@ -1,19 +1,19 @@
 from collections import defaultdict
 from typing import Any, Optional
 
-from makeproto.makemsg import get_oneof_details
-from makeproto.mapclass import get_dataclass_fields
-from makeproto.prototypes import BaseMessage
+from makeproto.mapclass import map_class_fields
+from makeproto.prototypes2 import BaseMessage, OneOf
 
 
 def define_oneof_fields(cls: type[BaseMessage]) -> None:
-    args = get_dataclass_fields(cls)
+    args = map_class_fields(cls)
     oneof: dict[str, set[str]] = defaultdict(set)
+
     for arg in args:
-        oodetails = get_oneof_details(arg)
-        if oodetails:
-            key, fname, *_ = oodetails
-            oneof[key].add(fname)
+        instance = arg.getinstance(OneOf)
+        if instance is not None:
+            key = instance.key
+            oneof[key].add(arg.name)
     setattr(cls, "_oneof", oneof)
 
 

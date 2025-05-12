@@ -4,7 +4,7 @@ from typing import Annotated, List, Optional, Union
 import pytest
 
 # Importar as funções e classes que vamos testar
-from makeproto.mapclass import NO_DEFAULT, get_dataclass_fields
+from makeproto.mapclass import NO_DEFAULT, map_class_fields
 
 
 # Tipos auxiliares para metadados em Annotated
@@ -141,8 +141,96 @@ class NoHint:
         # ),
     ],
 )
-def test_get_dataclass_fields(cls, expected):
-    result = get_dataclass_fields(cls)
+def test_map_class_fields(cls, expected):
+    result = map_class_fields(cls)
+    assert len(result) == len(expected)
+
+    for res, exp in zip(result, expected):
+        name, argtype, basetype, default, has_default, extras = exp
+
+        assert res.name == name
+        assert res.argtype == argtype
+        assert res.basetype == basetype
+        assert res.default == default
+        assert res.has_default == has_default
+        assert res.extras == extras
+
+
+# CASO 11: Classe normal com default simples
+class ClassSimpleDefault:
+    def __init__(self, x: int = 10):
+        self.x = x
+
+
+# CASO 12: Classe normal com múltiplos metadados via Annotated
+class ClassAnnotatedMultiple:
+    def __init__(self, b: Annotated[str, Meta1(), Meta2()] = "hello"):
+        self.b = b
+
+
+# CASO 13: Classe normal com Optional sem default
+class ClassOptionalNoDefault:
+    def __init__(self, c: Optional[int]):
+        self.c = c
+
+
+# CASO 14: Classe normal com Union
+class ClassWithUnion:
+    def __init__(self, f: Union[int, str] = 42):
+        self.f = f
+
+
+# CASO 15: Classe normal com Annotated + Optional
+class ClassAnnotatedOptional:
+    def __init__(self, e: Annotated[Optional[str], Meta1()] = None):
+        self.e = e
+
+
+@pytest.mark.parametrize(
+    "cls, expected",
+    [
+        (
+            ClassSimpleDefault,
+            [("x", int, int, 10, True, None)],
+        ),
+        (
+            ClassAnnotatedMultiple,
+            [
+                (
+                    "b",
+                    Annotated[str, Meta1(), Meta2()],
+                    str,
+                    "hello",
+                    True,
+                    (Meta1(), Meta2()),
+                )
+            ],
+        ),
+        (
+            ClassOptionalNoDefault,
+            [("c", Optional[int], Optional[int], NO_DEFAULT, False, None)],
+        ),
+        (
+            ClassWithUnion,
+            [("f", Union[int, str], Union[int, str], 42, True, None)],
+        ),
+        (
+            ClassAnnotatedOptional,
+            [
+                (
+                    "e",
+                    Annotated[Optional[str], Meta1()],
+                    Optional[str],
+                    None,
+                    True,
+                    (Meta1(),),
+                )
+            ],
+        ),
+    ],
+)
+def test_map_class_fields_regular(cls, expected):
+    result = map_class_fields(cls)
     assert len(result) == len(expected)
 
     for res, exp in zip(result, expected):

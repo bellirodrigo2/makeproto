@@ -1,24 +1,15 @@
 from dataclasses import dataclass
-from typing import Annotated
+from enum import Enum
+from typing import Annotated, List
 
 import pytest
 
-from makeproto.message import define_oneof_fields
-from makeproto.prototypes import (
-    BaseMessage,
-    Enum,
-    FieldSpec,
-    Float,
-    Int32,
-    OneOf,
-    OneOfKey,
-    String,
-)
+from makeproto.prototypes2 import BaseMessage, FieldSpec, Float, Int32, OneOf, String
 
 
 class TesteMessage(BaseMessage):
-    __proto_file__ = "teste"
-    __proto_package__ = "pack1"
+    protofile = "teste"
+    package = "pack1"
 
 
 @dataclass
@@ -39,36 +30,28 @@ class User(TesteMessage):
     code2: "Code"
     pa: "ProductArea"
 
-    o1: Annotated[OneOf[bool], OneOfKey("oo1")]
-    o2: Annotated[OneOf[str], OneOfKey("oo1")]
-    o3: Annotated[OneOf[int], OneOfKey("oo1")]
-    o4: Annotated[OneOf[str], OneOfKey("oo1")]
+    o1: Annotated[bool, OneOf("oo1")]
+    o2: Annotated[str, OneOf("oo1")]
+    o3: Annotated[int, OneOf("oo1")]
+    o4: Annotated[str, OneOf("oo1")]
 
 
 @dataclass
 class Code(TesteMessage):
     code: int
     pa: "ProductArea"
-    s: set[str]
+    s: List[str]
     le: list["ProductArea"]
     me: dict[str, "Enum2"]
 
 
-class ProductArea(Enum):
-
-    __proto_file__ = "proto"
-    __proto_package__ = "pack1"
-
+class ProductArea(TesteMessage, Enum):
     Area1 = 0
     Area2 = 1
     Area3 = 2
 
 
-class Enum2(Enum):
-
-    __proto_file__ = "proto"
-    __proto_package__ = "pack1"
-
+class Enum2(TesteMessage, Enum):
     e1 = 0
     e2 = 1
 
@@ -89,13 +72,6 @@ class Requisition(TesteMessage):
     product: Product
     quantity: Int32
     enum2: Enum2
-
-
-define_oneof_fields(ID)
-define_oneof_fields(User)
-define_oneof_fields(Code)
-define_oneof_fields(Product)
-define_oneof_fields(Requisition)
 
 
 @pytest.fixture

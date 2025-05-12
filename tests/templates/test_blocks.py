@@ -1,13 +1,7 @@
 import pytest
 
-from makeproto.models import (
-    EnumBlock,
-    Field,
-    MessageBlock,
-    Method,
-    OneOfBlock,
-    ServiceBlock,
-)
+from makeproto.models2 import Block, Field, Method
+from makeproto.prototypes2 import Int32, String
 from makeproto.templates import render_block, render_obj
 
 # -------- Fixtures para fields e methods --------
@@ -20,36 +14,41 @@ class GetResponse: ...
 
 
 @pytest.fixture
-def simple_field():
-    return Field.make(name="id", number=1, ftype="int32")
+def simple_field() -> Field:
+    return Field(name="id", number=1, ftype=Int32, options={}, comment="")
 
 
 @pytest.fixture
-def field_with_options():
-    return Field.make(name="id", number=1, ftype="int32", options={"deprecated": True})
+def field_with_options() -> Field:
+    return Field(
+        name="id", number=1, ftype=Int32, options={"deprecated": True}, comment=""
+    )
 
 
 @pytest.fixture
-def simple_method():
+def simple_method() -> Method:
 
-    return Method.make(
+    return Method(
         method_name="GetItem",
         request_type=GetRequest,
         response_type=GetResponse,
         request_stream=False,
         response_stream=False,
+        options={},
+        comment="",
     )
 
 
 @pytest.fixture
-def method_with_options():
-    return Method.make(
+def method_with_options() -> Method:
+    return Method(
         method_name="GetItem",
         request_type=GetRequest,
         response_type=GetResponse,
         request_stream=False,
         response_stream=False,
         options={"opt1": "value1"},
+        comment="",
     )
 
 
@@ -57,24 +56,25 @@ def method_with_options():
 
 
 @pytest.mark.parametrize(
-    "block_type,block_class,field_fixture",
+    "block_type,field_fixture",
     [
-        ("message", MessageBlock, "simple_field"),
-        ("enum", EnumBlock, "simple_field"),
-        ("oneof", OneOfBlock, "simple_field"),
-        ("service", ServiceBlock, "simple_method"),
+        ("message", "simple_field"),
+        ("enum", "simple_field"),
+        ("oneof", "simple_field"),
+        ("service", "simple_method"),
     ],
 )
-def test_block_without_options_or_comment(
-    block_type, block_class, request, field_fixture
-):
+def test_block_without_options_or_comment(block_type, request, field_fixture):
     field = request.getfixturevalue(field_fixture)
-    block = block_class.make(
+    block = Block(
         protofile="proto",
         package="pack",
         name=f"My{block_type.title()}",
         block_type=block_type,
         fields=[field],
+        comment="",
+        options={},
+        reserved=[],
     )
     rendered_fields = [render_obj(f) for f in block.fields]
     for r in rendered_fields:
@@ -83,49 +83,53 @@ def test_block_without_options_or_comment(
 
 
 @pytest.mark.parametrize(
-    "block_type,block_class,field_fixture",
+    "block_type,field_fixture",
     [
-        ("message", MessageBlock, "field_with_options"),
-        ("enum", EnumBlock, "field_with_options"),
-        ("oneof", OneOfBlock, "field_with_options"),
+        ("message", "field_with_options"),
+        ("enum", "field_with_options"),
+        ("oneof", "field_with_options"),
     ],
 )
-def test_block_with_field_options(block_type, block_class, request, field_fixture):
+def test_block_with_field_options(block_type, request, field_fixture):
     field = request.getfixturevalue(field_fixture)
-    block = block_class.make(
+    block = Block(
         protofile="proto",
         package="pack",
         name=f"My{block_type.title()}",
         block_type=block_type,
         fields=[field],
+        comment="",
+        options={},
+        reserved=[],
     )
     rendered = [render_obj(f) for f in block.fields][0]
     assert "[deprecated = true]" in rendered
 
 
 @pytest.mark.parametrize(
-    "block_type,block_class,method_fixture",
+    "block_type,method_fixture",
     [
-        ("service", ServiceBlock, "method_with_options"),
+        ("service", "method_with_options"),
     ],
 )
-def test_service_block_with_method_options(
-    block_type, block_class, request, method_fixture
-):
+def test_service_block_with_method_options(block_type, request, method_fixture):
     method = request.getfixturevalue(method_fixture)
-    block = block_class.make(
+    block = Block(
         protofile="proto",
         package="pack",
         name="MyService",
         block_type=block_type,
         fields=[method],
+        options={},
+        comment="",
+        reserved=[],
     )
     rendered = [render_obj(m) for m in block.fields][0]
     assert 'option opt1 = "value1";' in rendered
 
 
 def test_block_with_comment_and_options(simple_field):
-    block = MessageBlock.make(
+    block = Block(
         protofile="proto1",
         package="pack1",
         name="User",
@@ -133,28 +137,33 @@ def test_block_with_comment_and_options(simple_field):
         fields=[simple_field],
         comment="This is a message block",
         options={"opt_block": "true"},
+        reserved=[],
     )
     assert block.comment == "This is a message block"
     assert block.options["opt_block"] == "true"
 
 
-def test_message_block_with_oneof(simple_field):
-    oneof = OneOfBlock.make(
+def test_message_block_with_oneof(simple_field: Field) -> None:
+    oneof = Block(
         protofile="proto1",
         package="pack1",
         name="my_union",
         block_type="oneof",
         fields=[simple_field],
         comment="oneof comment",
+        reserved=[],
+        options={},
     )
 
-    msg_block = MessageBlock.make(
+    msg_block = Block(
         protofile="proto1",
         package="pack1",
         name="Container",
         block_type="message",
         fields=[oneof],
         comment="Message with oneof",
+        reserved=[],
+        options={},
     )
 
     rendered = render_block(msg_block)
@@ -167,32 +176,32 @@ def test_message_block_with_oneof(simple_field):
 
 def test_message_block_with_fields_and_oneof_with_options_and_comments():
     # Field direto no bloco message
-    direct_field = Field.make(
+    direct_field = Field(
         name="username",
         number=1,
-        ftype="string",
+        ftype=str,
         comment="User's name",
         options={"deprecated": True},
     )
 
     # Campos dentro do oneof
-    oneof_field1 = Field.make(
+    oneof_field1 = Field(
         name="email",
         number=2,
-        ftype="string",
+        ftype=str,
         comment="User email",
         options={"required": True},
     )
-    oneof_field2 = Field.make(
+    oneof_field2 = Field(
         name="phone",
         number=3,
-        ftype="string",
+        ftype=String,
         comment="User phone",
         options={"deprecated": False},
     )
 
-    # OneOfBlock com comentário e opções
-    oneof = OneOfBlock.make(
+    # Block com comentário e opções
+    oneof = Block(
         protofile="proto1",
         package="pack1",
         name="contact",
@@ -200,10 +209,11 @@ def test_message_block_with_fields_and_oneof_with_options_and_comments():
         fields=[oneof_field1, oneof_field2],
         comment="Contact info, mutually exclusive",
         options={"opt_oneof": "yes"},
+        reserved=[],
     )
 
-    # MessageBlock contendo o field normal e o oneof
-    message = MessageBlock.make(
+    # Block contendo o field normal e o oneof
+    message = Block(
         protofile="proto1",
         package="pack1",
         name="UserProfile",
@@ -211,6 +221,7 @@ def test_message_block_with_fields_and_oneof_with_options_and_comments():
         fields=[direct_field, oneof],
         comment="Profile of the user",
         options={"opt_msg": "true"},
+        reserved=[],
     )
 
     rendered = render_block(message)
@@ -225,7 +236,7 @@ def test_message_block_with_fields_and_oneof_with_options_and_comments():
     assert "string username = 1" in rendered
     assert "[deprecated = true]" in rendered
 
-    # Oneof e seus fields
+    # # Oneof e seus fields
     assert "oneof contact" in rendered
     assert "// Contact info, mutually exclusive" in rendered
     assert 'option opt_oneof = "yes";' in rendered

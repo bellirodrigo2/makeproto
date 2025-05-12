@@ -1,18 +1,18 @@
 import sys
 from dataclasses import dataclass, fields
+from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, Optional, get_args, get_origin, get_type_hints
+from typing import Any, Optional, get_args, get_origin, get_type_hints
 
 import pytest
+from typing_extensions import Annotated
 
-from makeproto.makemsg import get_type_str
-from makeproto.mapclass import dataclass_field_factory
-from makeproto.prototypes import (
+from makeproto.mapclass import map_class_fields
+from makeproto.prototypes2 import (
     BaseMessage,
     Bool,
     Bytes,
     Double,
-    Enum,
     Fixed32,
     Fixed64,
     Float,
@@ -24,6 +24,7 @@ from makeproto.prototypes import (
     UInt32,
     UInt64,
 )
+from makeproto.templates import get_type_str
 
 
 @dataclass
@@ -101,8 +102,6 @@ class MessageClass:
     f4: Annotated[C2, "foobar"]
     f5: C3
     f6: Annotated[C3, "foobar"]
-    f7: Enum
-    f8: Annotated[Enum, "foobar"]
 
 
 @pytest.mark.parametrize(
@@ -115,87 +114,65 @@ class MessageClass:
         (DoubleClass, "double"),
     ],
 )
-def teste_get_type_str(class_: type[Any], str_: str):
-
-    hints = get_type_hints(
-        class_, globalns=vars(sys.modules[class_.__module__]), include_extras=True
-    )
+def teste_get_type_str(class_: type[Any], str_: str) -> None:
 
     for f in fields(class_):
-
-        hint: Optional[type[Any]] = hints.get(f.name, None)
-        ftype = dataclass_field_factory(f, hint)
-        str_ = get_type_str(ftype)
-        assert str_ == str_
+        type_str = get_type_str(f.type)
+        assert str_ == type_str
 
 
-@pytest.mark.parametrize("class_", [IntClass, MessageClass])
-def teste_get_type_str_others(class_: type[Any]):
+def teste_get_type_str_int() -> None:
 
-    hints = get_type_hints(
-        class_, globalns=vars(sys.modules[class_.__module__]), include_extras=True
-    )
-
-    for f in fields(class_):
-
-        hint: Optional[type[Any]] = hints.get(f.name, None)
-        ftype = dataclass_field_factory(f, hint)
-        str_ = get_type_str(ftype)
-        bt = f.type
-        if get_origin(f.type) is Annotated:
-            args = get_args(f.type)
-            bt = args[0]
-        else:
-            if hasattr(bt, "prototype"):
-                type_ = bt.prototype()
-            else:
-                type_ = bt.__name__
-        assert str_ == type_
+    for f in fields(IntClass):
+        ftype = f.type
+        type_str = get_type_str(ftype)
+        origin = get_origin(f.type)
+        if origin is Annotated:
+            ftype = get_args(ftype)[0]
+        assert ftype.__name__.lower() == type_str
 
 
-def teste_type_fail():
+def teste_get_type_str_message() -> None:
 
+    for f in fields(MessageClass):
+        ftype = f.type
+        type_str = get_type_str(ftype)
+        origin = get_origin(f.type)
+        if origin is Annotated:
+            ftype = get_args(ftype)[0]
+        assert ftype.__name__ == type_str
+
+
+def teste_type_fail() -> None:
     @dataclass
     class TypeFail:
         f1: Path
         f2: tuple[str, ...]
 
-    hints = get_type_hints(
-        TypeFail, globalns=vars(sys.modules[TypeFail.__module__]), include_extras=True
-    )
-
     for f in fields(TypeFail):
-        hint: Optional[type[Any]] = hints.get(f.name, None)
-        ftype = dataclass_field_factory(f, hint)
-        str_ = get_type_str(ftype)
+        str_ = get_type_str(f.type)
         assert str_ is None
 
 
-def teste_list_ok():
+def teste_list_ok() -> None:
 
     @dataclass
     class ListClass:
         f1: list[C1]
         f2: Annotated[list[C1], "foobar"]
-        f3: set[str]
         f4: Annotated[list[str], "foobar"]
-        f5: set[Int32]
         f6: Annotated[list[Double], "foobar"]
-        f7: list[Enum]
-        f8: Annotated[list[Enum], "foobar"]
-
-    hints = get_type_hints(
-        ListClass, globalns=vars(sys.modules[ListClass.__module__]), include_extras=True
-    )
 
     for f in fields(ListClass):
-        hint: Optional[type[Any]] = hints.get(f.name, None)
-        ftype = dataclass_field_factory(f, hint)
-        str_ = get_type_str(ftype)
-        assert str_.startswith("repeated")
+        ftype = f.type
+        origin = get_origin(f.type)
+        if origin is Annotated:
+            ftype = get_args(ftype)[0]
+        type_str = get_type_str(ftype)
+        assert type_str.startswith("repeated")
 
 
-def teste_list_fail():
+def teste_list_fail() -> None:
     @dataclass
     class MapClass:
         f1: list[Path]
@@ -204,18 +181,16 @@ def teste_list_fail():
         f4: Annotated[list[Path], "foobar"]
         f5: Annotated[list[list[str]], 123]
 
-    hints = get_type_hints(
-        MapClass, globalns=vars(sys.modules[MapClass.__module__]), include_extras=True
-    )
-
     for f in fields(MapClass):
-        hint: Optional[type[Any]] = hints.get(f.name, None)
-        ftype = dataclass_field_factory(f, hint)
+        ftype = f.type
+        origin = get_origin(f.type)
+        if origin is Annotated:
+            ftype = get_args(ftype)[0]
         str_ = get_type_str(ftype)
         assert str_ is None
 
 
-def teste_map_ok():
+def teste_map_ok() -> None:
 
     @dataclass
     class MapClass:
@@ -224,19 +199,17 @@ def teste_map_ok():
         f3: dict[Int32, str]
         f4: Annotated[dict[int, Fixed64], "foobar"]
 
-    hints = get_type_hints(
-        MapClass, globalns=vars(sys.modules[MapClass.__module__]), include_extras=True
-    )
-
     for f in fields(MapClass):
-        hint: Optional[type[Any]] = hints.get(f.name, None)
-        ftype = dataclass_field_factory(f, hint)
+        ftype = f.type
+        origin = get_origin(f.type)
+        if origin is Annotated:
+            ftype = get_args(ftype)[0]
         str_ = get_type_str(ftype)
         assert str_.startswith("map<")
         assert str_.endswith(">")
 
 
-def teste_map_fail():
+def teste_map_fail() -> None:
     @dataclass
     class MapClass:
         f1: dict[Bytes, C1]
@@ -249,12 +222,10 @@ def teste_map_fail():
         f8: Annotated[dict[str, Path], "foobar"]
         f9: Annotated[dict[Path, str], "foobar"]
 
-    hints = get_type_hints(
-        MapClass, globalns=vars(sys.modules[MapClass.__module__]), include_extras=True
-    )
-
     for f in fields(MapClass):
-        hint: Optional[type[Any]] = hints.get(f.name, None)
-        ftype = dataclass_field_factory(f, hint)
+        ftype = f.type
+        origin = get_origin(f.type)
+        if origin is Annotated:
+            ftype = get_args(ftype)[0]
         str_ = get_type_str(ftype)
         assert str_ is None
