@@ -1,7 +1,7 @@
 from enum import Enum
 
-from makeproto.makemsg2 import cls_to_blocks
-from makeproto.prototypes2 import BaseMessage
+from makeproto.makeblock import cls_to_blocks
+from makeproto.prototypes import BaseMessage
 
 
 def test_chanied(

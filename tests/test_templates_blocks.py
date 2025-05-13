@@ -1,7 +1,7 @@
 import pytest
 
-from makeproto.models2 import Block, Field, Method
-from makeproto.prototypes2 import Int32, String
+from makeproto.models import Block, Field, Method
+from makeproto.prototypes import Int32, String
 from makeproto.templates import render_block, render_obj
 
 # -------- Fixtures para fields e methods --------
@@ -19,9 +19,21 @@ def simple_field() -> Field:
 
 
 @pytest.fixture
+def simple_enum() -> Field:
+    return Field(name="id", number=1, ftype=None, options={}, comment="")
+
+
+@pytest.fixture
 def field_with_options() -> Field:
     return Field(
         name="id", number=1, ftype=Int32, options={"deprecated": True}, comment=""
+    )
+
+
+@pytest.fixture
+def enum_with_options() -> Field:
+    return Field(
+        name="id", number=1, ftype=None, options={"deprecated": True}, comment=""
     )
 
 
@@ -59,7 +71,7 @@ def method_with_options() -> Method:
     "block_type,field_fixture",
     [
         ("message", "simple_field"),
-        ("enum", "simple_field"),
+        ("enum", "simple_enum"),
         ("oneof", "simple_field"),
         ("service", "simple_method"),
     ],
@@ -86,7 +98,7 @@ def test_block_without_options_or_comment(block_type, request, field_fixture):
     "block_type,field_fixture",
     [
         ("message", "field_with_options"),
-        ("enum", "field_with_options"),
+        ("enum", "enum_with_options"),
         ("oneof", "field_with_options"),
     ],
 )

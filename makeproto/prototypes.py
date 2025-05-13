@@ -14,6 +14,10 @@ class BaseProto:
     def prototype(cls) -> str:
         raise NotImplementedError("Subclasses should implement 'prototype'.")
 
+    @classmethod
+    def qualified_prototype(cls) -> str:
+        raise NotImplementedError("Subclasses should implement 'qualified_prototype'.")
+
 
 class ProtoMeta:
     protofile: str
@@ -37,7 +41,9 @@ class BaseMessage(BaseProto, ProtoMeta, ProtoHeader):
 
 
 class BaseField(BaseProto):
-    pass
+    @classmethod
+    def qualified_prototype(cls) -> str:
+        return cls.prototype()
 
 
 class BaseStringField(str, BaseField):

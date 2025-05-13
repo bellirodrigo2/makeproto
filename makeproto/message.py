@@ -2,7 +2,7 @@ from collections import defaultdict
 from typing import Any, Optional
 
 from makeproto.mapclass import map_class_fields
-from makeproto.prototypes2 import BaseMessage, OneOf
+from makeproto.prototypes import BaseMessage, OneOf
 
 
 def define_oneof_fields(cls: type[BaseMessage]) -> None:

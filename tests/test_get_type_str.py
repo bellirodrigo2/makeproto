@@ -1,14 +1,11 @@
-import sys
 from dataclasses import dataclass, fields
-from enum import Enum
 from pathlib import Path
-from typing import Any, Optional, get_args, get_origin, get_type_hints
+from typing import Any, get_args, get_origin
 
 import pytest
 from typing_extensions import Annotated
 
-from makeproto.mapclass import map_class_fields
-from makeproto.prototypes2 import (
+from makeproto.prototypes import (
     BaseMessage,
     Bool,
     Bytes,

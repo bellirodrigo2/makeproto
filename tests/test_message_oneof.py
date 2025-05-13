@@ -4,7 +4,7 @@ from typing import Annotated
 import pytest
 
 from makeproto.message import Message, define_oneof_fields
-from makeproto.prototypes2 import BaseMessage, Bool, Int32, OneOf
+from makeproto.prototypes import BaseMessage, Bool, Int32, OneOf
 
 
 @dataclass

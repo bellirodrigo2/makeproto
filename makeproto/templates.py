@@ -4,8 +4,8 @@ from typing import Any, Callable, Dict, Optional, Union, get_args, get_origin
 from jinja2 import Environment, FileSystemLoader
 from typing_extensions import Annotated
 
-from makeproto.models2 import Block, Field, Method, ProtoFile
-from makeproto.prototypes2 import (
+from makeproto.models import Block, Field, Method, ProtoBlocks
+from makeproto.prototypes import (
     DEFAULT_PRIMITIVES,
     BaseProto,
     EnumValue,
@@ -61,7 +61,6 @@ def render_obj(temp: Union[Field, Method]) -> str:
         return field_template.render(temp_dict)
 
     elif isinstance(temp, Method):  # type: ignore
-
         temp_dict: Dict[str, Any] = temp.to_dict()
         temp_dict["request_type"] = temp_dict["request_type"].__name__
         temp_dict["response_type"] = temp_dict["response_type"].__name__
@@ -96,11 +95,11 @@ def render_block(block: Block) -> str:
     )
 
 
-def render_protofile(proto_file: ProtoFile) -> str:
+def render_protofile(proto_file: ProtoBlocks) -> str:
     rendered_blocks = [render_block(block) for block in proto_file.blocks]  # type: ignore
 
     return proto_template.render(
-        version=proto_file.version or 3,
+        version=3,
         package_name=proto_file.package,
         options=proto_file.options or {},
         blocks=rendered_blocks,

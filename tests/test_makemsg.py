@@ -6,9 +6,9 @@ from typing import Dict, List, Optional, Union
 from typing_extensions import Annotated
 
 from makeproto.exceptions import ProtoBlockError
-from makeproto.makemsg2 import make_msgblock
-from makeproto.models2 import Block
-from makeproto.prototypes2 import (
+from makeproto.makeblock import make_msgblock
+from makeproto.models import Block
+from makeproto.prototypes import (
     BaseMessage,
     Bool,
     Bytes,
@@ -94,7 +94,7 @@ class Fail(Proto1):
     i: int = FieldSpec(comment=[])
     j: str = FieldSpec(options={3: "bar"})
     k: str = FieldSpec(options={"3": 3})
-    l: str = FieldSpec(options=[1])
+    lee: str = FieldSpec(options=[1])
 
 
 def test_get_dataclass_block_fail() -> None:
@@ -124,7 +124,7 @@ class Hello2(Proto1):
         i: MyEnum,
         j: Annotated[Enum2, "helloworld"],
         k: Annotated[Fixed64, 1234],
-        l: list[str],
+        leee: list[str],
         m: Annotated[
             list[Bool],
             1,

@@ -4,7 +4,7 @@ from typing import Annotated, List
 
 import pytest
 
-from makeproto.prototypes2 import BaseMessage, FieldSpec, Float, Int32, OneOf, String
+from makeproto.prototypes import BaseMessage, FieldSpec, Float, Int32, OneOf, String
 
 
 class TesteMessage(BaseMessage):

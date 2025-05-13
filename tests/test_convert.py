@@ -1,9 +1,8 @@
 from enum import Enum
 from pathlib import Path
 
-from makeproto.compile_proto import compile
-from makeproto.makemsg2 import make_enumblock, make_msgblock
-from makeproto.prototypes2 import BaseMessage
+from makeproto.makeblock import make_enumblock, make_msgblock
+from makeproto.prototypes import BaseMessage
 from makeproto.templates import render_block
 
 

@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Any, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
-from makeproto.makemsg2 import cls_to_blocks
-from makeproto.models2 import Block, ProtoBlocks
-from makeproto.prototypes2 import ProtoOption
+from makeproto.makeblock import cls_to_blocks
+from makeproto.models import Block, ProtoBlocks
+from makeproto.prototypes import ProtoOption
+from makeproto.templates import render_protofile
 
 
 @dataclass
@@ -89,3 +90,17 @@ class Protobuilder:
         for block in blocks:
             msgblocks = self.get_protoblock(block.protofile, block.package)
             msgblocks.add(block)
+
+    def render(self) -> Dict[str, str]:
+
+        rendered: Dict[str, str] = {}
+
+        for filename, file in self.files.items():
+            proto_str = render_protofile(file.pf)
+            rendered[filename] = proto_str
+
+        for filename, file in self.packs.items():
+            proto_str = render_protofile(file.pf)
+            rendered[filename] = proto_str
+
+        return rendered

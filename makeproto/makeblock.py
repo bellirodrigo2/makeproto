@@ -1,11 +1,11 @@
 from collections import defaultdict
 from enum import Enum
-from typing import Any, Callable, List, Optional, Set, Union
+from typing import Any, List, Optional, Set
 
 from makeproto.exceptions import ProtoBlockError
 from makeproto.mapclass import FuncArg, map_class_fields
-from makeproto.models2 import Block, Field, Method
-from makeproto.prototypes2 import (
+from makeproto.models import Block, Field, Method
+from makeproto.prototypes import (
     DEFAULT_PRIMITIVES,
     BaseMessage,
     BaseProto,

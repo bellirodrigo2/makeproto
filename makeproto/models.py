@@ -1,7 +1,7 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Generator, Iterator, List, Literal, Optional, Set, Union
 
-from makeproto.prototypes2 import ProtoOption
+from makeproto.prototypes import ProtoOption
 
 
 @dataclass
@@ -72,8 +72,6 @@ class Method(HasMeta):
             and self.response_type.__name__ == other.response_type.__name__
             and self.request_stream == other.request_stream
             and self.response_stream == other.response_stream
-            and self.req_prefix == other.req_prefix
-            and self.resp_prefix == other.resp_prefix
         )
 
 
@@ -85,12 +83,58 @@ class Block(HasMeta, ProtoModule):
     reserved: List[str]
 
     def __post_init__(self) -> None:
-        # checar consistencia do block_type vs dos fields...
-        # se services...fields method only...
-        # se enum....field only com type = ''
-        # se message, fields ou oneof blocks
-        # se oneof...fields only
+        validate = {
+            "service": self._validate_service,
+            "enum": self._validate_enum,
+            "message": self._validate_message,
+            "oneof": self._validate_oneof,
+        }.get(self.block_type)
+
+        if not validate:
+            raise ValueError(f"Invalid block_type: {self.block_type}")
+
+        validate()
         self.fields = frozenset(self.fields)
+
+    def _validate_service(self) -> None:
+        for f in self.fields:
+            if not isinstance(f, Method):
+                raise TypeError(
+                    f'Service Block should have Methods only. Found "{type(f)}" for field "{getattr(f, "name", "?")}" in block "{self.name}"'
+                )
+
+    def _validate_enum(self) -> None:
+        for f in self.fields:
+            if not isinstance(f, Field):
+                raise TypeError(
+                    f"Enum Block should have Field only. Found {type(f)} in block '{self.name}'"
+                )
+            if f.ftype:
+                raise TypeError(
+                    f'Enum Field should have no type. Found "{f.ftype}" on field "{f.name}" in block "{self.name}"'
+                )
+
+    def _validate_message(self) -> None:
+        for f in self.fields:
+            if isinstance(f, Method):
+                raise TypeError(
+                    f"Message Block '{self.name}' should not have Methods. Found method: {f.method_name}"
+                )
+            if isinstance(f, Field) and not f.ftype:
+                raise TypeError(
+                    f"Message Block '{self.name}' found no ftype for field: {f.name}"
+                )
+
+    def _validate_oneof(self) -> None:
+        for f in self.fields:
+            if not isinstance(f, Field):
+                raise TypeError(
+                    f"Oneof Block should have Field only. Found {type(f)} in block '{self.name}'"
+                )
+            if not f.ftype:
+                raise TypeError(
+                    f"Oneof Block should have a type. Found no type for field: {f.name}"
+                )
 
     def __iter__(self) -> Iterator[Union[Field, Method, "Block"]]:
         return iter(self.fields)
@@ -137,8 +181,3 @@ class ProtoBlocks(HasMeta, ProtoModule):
                 raise TypeError(
                     f'When iterating through protofile block "{self.protofile}", found an item: {type(item)}'
                 )
-
-
-@dataclass
-class ProtoFile(ProtoBlocks):
-    version: int = 3

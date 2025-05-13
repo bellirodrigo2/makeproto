@@ -1,10 +1,9 @@
-from collections import namedtuple
 from typing import Optional
 
 import pytest
 
-from makeproto.models2 import Block, ProtoOption
-from makeproto.protobuilder2 import ProtoBlocksBuilder, Protobuilder
+from makeproto.models import Block, ProtoOption
+from makeproto.protobuilder import ProtoBlocksBuilder, Protobuilder
 
 
 def make_block(

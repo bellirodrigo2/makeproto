@@ -1,5 +1,5 @@
 from enum import EnumMeta, IntEnum
-from typing import Any, ClassVar, Dict, List, Tuple, Type
+from typing import Any, ClassVar, Dict, Tuple, Type
 
 
 class ProtoMeta(type):
