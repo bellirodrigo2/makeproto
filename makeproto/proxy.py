@@ -3,9 +3,9 @@ import importlib.util
 from enum import Enum
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
-from makeproto.mapclass import map_class_fields
+from makeproto.mapclass import FuncArg, map_class_fields
 from makeproto.prototypes import BaseMessage
 
 
@@ -29,46 +29,12 @@ def import_py_files_from_folder(folder: Path) -> dict[str, ModuleType]:
     return modules
 
 
-def bind_init(cls: type[BaseMessage]) -> None:
-    proto_cls = getattr(cls, "_proto_cls", None)
-    if proto_cls is None:
-        raise TypeError(f"No _proto_cls bound to class {cls.__name__}")
+class ProtoProxy:
+    def __init__(self, proto_instance: Any) -> None:
+        self._proto = proto_instance
 
-    fields = [f.name for f in map_class_fields(cls)]
-    enums = getattr(cls, "_enums", {})
-    nested_msgs = getattr(cls, "_nested_msgs", {})
-
-    @functools.wraps(cls.__init__)
-    def __init__(self: Any, **kwargs: Any) -> None:
-        proto_kwargs = {}
-
-        for k in fields:
-            if k not in kwargs:
-                continue
-            value = kwargs[k]
-
-            if k in enums:
-                if isinstance(value, enums[k]):
-                    value = value.value
-                else:
-                    raise TypeError(
-                        f"Field '{k}' must be of type '{enums[k].__name__}'"
-                    )
-
-            elif k in nested_msgs:
-                if isinstance(value, BaseMessage):
-                    value = value._proto
-                elif isinstance(value, nested_msgs[k]):
-                    pass  # já é proto
-                else:
-                    raise TypeError(
-                        f"Field '{k}' must be BaseMessage or {nested_msgs[k].__name__}, got {type(value).__name__}"
-                    )
-
-            proto_kwargs[k] = value
-        self._proto = proto_cls(**proto_kwargs)
-
-    cls.__init__ = __init__
+    def unwrap(self: Any) -> Any:
+        return self._proto
 
 
 def bind_proxy(cls: type[BaseMessage], modules: Dict[str, ModuleType]) -> None:
@@ -89,68 +55,190 @@ def bind_proxy(cls: type[BaseMessage], modules: Dict[str, ModuleType]) -> None:
     if hasattr(cls, "_proto_cls"):
         return  # already bound
 
-    enums = {}
-    nested_msgs = {}
     protofile = cls.protofile
 
-    # get_class will raise if module or class not found
     proto_cls = get_class(protofile, cls.__name__)
     setattr(cls, "_proto_cls", proto_cls)  # protoclass bind
 
-    args = map_class_fields(cls)
-    for arg in args:
-        bt = arg.basetype
-        if isinstance(bt, type):
-            if issubclass(bt, Enum):
-                enums[arg.name] = bt
-            elif issubclass(bt, BaseMessage):
-                nested_protofile = bt.protofile
-                nested_proto_cls = get_class(nested_protofile, bt.__name__)
-                nested_msgs[arg.name] = nested_proto_cls
-                bind_proxy(bt, modules)
-    setattr(cls, "_enums", enums)
-    setattr(cls, "_nested_msgs", nested_msgs)
-    bind_init(cls)
+
+def to_proto(msg: BaseMessage) -> Any:
+    proto_cls = getattr(msg.__class__, "_proxy_cls", None)
+    if proto_cls is None:
+        raise TypeError(f"No _proto_cls bound to class {cls.__name__}")
+
+    fields = [f.name for f in map_class_fields(cls)]
+
+    proto_instance = proto_cls()
+    proxy = ProtoProxy(proto_instance)
+    for k in fields:
+        ...
+        # PRECISA SER RECURSIVO
+    #     if k in kwargs:
+    #         setattr(proxy, k, kwargs[k])
 
 
-class ProtoProxy:
-    def __init__(self, proto_instance: Any, model_cls: type["BaseMessage"]):
+def bind_init(cls: type[BaseMessage]) -> None:
+    proto_cls = getattr(cls, "_proto_cls", None)
+    if proto_cls is None:
+        raise TypeError(f"No _proto_cls bound to class {cls.__name__}")
 
-        if not hasattr(model_cls, "_enums"):
-            raise TypeError(f'Class "{model_cls.__name__}" has no "_enums" associated')
-        if not hasattr(model_cls, "_nested_msgs"):
-            raise TypeError(
-                f'Class "{model_cls.__name__}" has no "_nested_msgs" associated'
+    fields = [f.name for f in map_class_fields(cls)]
+
+    @functools.wraps(cls.__init__)
+    def __init__(self: Any, **kwargs: Any) -> None:
+        proto_instance = proto_cls()
+        self._proto = proto_instance
+        proxy = ProtoProxy(proto_instance)
+
+        for k in fields:
+            if k in kwargs:
+                setattr(proxy, k, kwargs[k])
+        self._proxy = proxy
+
+    def unwrap(self: Any) -> Any:
+        return self._proto
+
+    # Attach both __init__ and unwrap methods to the class
+    cls.__init__ = __init__
+    setattr(cls, "unwrap", unwrap)
+
+
+def get_enum(value: Any, enum_type: type[Enum]) -> Enum:
+    return enum_type(value)
+
+
+def set_enum(value: Enum) -> Any:
+    return value.value
+
+
+def get_basemsg(value: Any, proxy: type[ProtoProxy]) -> BaseMessage:
+    return proxy(value)
+
+
+def set_basemsg(value: BaseMessage) -> Any:
+    return value.unwrap()
+
+
+def set_enum_list(value: list[Enum]) -> list[Any]:
+    return [v.value for v in value]
+
+
+def get_enum_list(value: Any, enum_type: type[Enum]) -> list[Enum]:
+    return [enum_type(v) for v in value]
+
+
+def set_basemsg_list(value: list[BaseMessage]) -> list[Any]:
+    return [v.unwrap() for v in value]
+
+
+def get_basemsg_list(value: Any, proxy: type[ProtoProxy]) -> list[BaseMessage]:
+    return [proxy(v) for v in value]
+
+
+def set_enum_dict(value: dict[Any, Enum]) -> dict[Any, Any]:
+    return {k: v.value for k, v in value.items()}
+
+
+def get_enum_dict(value: Any, enum_type: type[Enum]) -> dict[Any, Enum]:
+    return {k: enum_type(v) for k, v in value.items()}
+
+
+def get_basemsg_dict(value: dict[Any, BaseMessage]) -> dict[Any, Any]:
+    return {k: v.unwrap() for k, v in value.items()}
+
+
+def set_basemsg_dict(value: Any, proxy: type[ProtoProxy]) -> dict[Any, BaseMessage]:
+    return {k: proxy(v) for k, v in value.items()}
+
+
+def make_getter(field: FuncArg) -> Callable[[Any], Any]:
+    name = field.name
+    bt = field.basetype
+
+    origin = field.origin
+    args = field.args
+
+    if origin is list:
+        bt = args[0]
+        if issubclass(bt, Enum):
+            enum_type = bt
+            return lambda self: get_enum_list(getattr(self._proto, name), enum_type)
+        elif issubclass(bt, BaseMessage):
+            proxy_ = getattr(bt, "_proxy_cls", None) or make_proxy_class(bt)
+            return lambda self: get_basemsg_list(getattr(self._proto, name), proxy_)
+
+    elif origin is dict:
+        bt = args[1]
+        if issubclass(bt, Enum):
+            enum_type = bt
+            return lambda self: get_enum_dict(getattr(self._proto, name), enum_type)
+        elif issubclass(bt, BaseMessage):
+            proxy_ = getattr(bt, "_proxy_cls", None) or make_proxy_class(bt)
+            return lambda self: get_basemsg_dict(getattr(self._proto, name))
+
+    elif origin is None:
+        if issubclass(bt, Enum):
+            enum_type = bt
+            return lambda self: get_enum(getattr(self._proto, name), enum_type)
+
+        elif issubclass(bt, BaseMessage):
+            proxy_ = getattr(bt, "_proxy_cls", None) or make_proxy_class(bt)
+            return lambda self: get_basemsg(getattr(self._proto, name), proxy_)
+
+    return lambda self: getattr(self._proto, name)
+
+
+def make_setter(field: FuncArg) -> Callable[[Any, Any], None]:
+    name = field.name
+    bt = field.basetype
+
+    origin = field.origin
+    args = field.args
+
+    if origin is list:
+        bt = args[0]
+        if issubclass(bt, Enum):
+            return lambda self, value: setattr(self._proto, name, set_enum_list(value))
+        elif issubclass(bt, BaseMessage):
+            return lambda self, value: setattr(
+                self._proto, name, set_basemsg_list(value)
             )
 
-        self._proto = proto_instance
-        self._model_cls = model_cls
+    elif origin is dict:
+        bt = args[1]
+        if issubclass(bt, Enum):
+            return lambda self, value: setattr(self._proto, name, set_enum_dict(value))
+        elif issubclass(bt, BaseMessage):
+            proxy_ = getattr(bt, "_proxy_cls", None) or make_proxy_class(bt)
+            return lambda self, value: setattr(
+                self._proto, name, set_basemsg_dict(value, proxy_)
+            )
 
-    def __getattr__(self, name: str) -> Any:
-        value = getattr(self._proto, name)
-        enum_ = getattr(self._model_cls, "_enums", {}).get(name, None)
-        if enum_:
-            return enum_(value)
-        msg_ = getattr(self._model_cls, "_nested_msgs").get(name, None)
-        if msg_:
-            return ProtoProxy(value, msg_)
-        return value
+    elif origin is None:
+        if issubclass(bt, Enum):
+            return lambda self, value: setattr(self._proto, name, set_enum(value))
+        elif issubclass(bt, BaseMessage):
+            return lambda self, value: setattr(self._proto, name, set_basemsg(value))
 
-    def __setattr__(self, name: str, value: Any) -> None:
-        if name in {"_enums", "_nested_msgs", "_proto", "_model_cls"}:
-            super().__setattr__(name, value)
-            return
-        enum_ = getattr(self._model_cls, "_enums", {}).get(name, None)
-        if enum_:
-            value = value.value
-        msg_ = getattr(self._model_cls, "_nested_msgs").get(name, None)
-        if msg_:
-            if isinstance(value, BaseMessage):
-                value = value._proto  # type: ignore
-            elif isinstance(value, msg_):
-                pass  # it is proto class already
-            else:
-                raise TypeError(
-                    f"Expected value of type BaseMessage or {msg_.__name__} for nested field '{name}', got {type(value).__name__}"
-                )
-        setattr(self._proto, name, value)
+    return lambda self, value: setattr(self._proto, name, value)
+
+
+def make_proxy_class(model_cls: type[BaseMessage]) -> type[ProtoProxy]:
+
+    fields = map_class_fields(model_cls)
+    slots = [f.name for f in fields] + ["_proto"]
+    namespace = {"__slots__": slots}
+
+    # Bind one getter/setter per field
+    for field in fields:
+        get_fn = make_getter(field)
+        set_fn = make_setter(field)
+        namespace[field.name] = property(get_fn, set_fn)
+
+    proxy_cls = type(f"{model_cls.__name__}Proxy", (ProtoProxy,), namespace)
+
+    # Bind a reference to the generated proxy class back to the BaseMessage
+    if not hasattr(model_cls, "_proxy_cls"):
+        setattr(model_cls, "_proxy_cls", proxy_cls)
+
+    return proxy_cls
