@@ -148,3 +148,53 @@ def test_get_class_block_ok() -> None:
     for field in block.fields:
         if isinstance(field, Block):
             assert field.block_type == "oneof"
+
+
+@dataclass
+class Base(Proto1):
+
+    comment = "Base Comment"
+    options = {"base": "foo"}
+
+    b1: Annotated[str, OneOf(key="choice")]
+    b2: Annotated[Int32, OneOf(key="choice")]
+
+
+@dataclass
+class Derived1(Base):
+
+    comment = "Derived1 Comment"
+    options = {"der1": "base"}
+
+    fromder1: int
+
+
+@dataclass
+class Derived2(Derived1):
+
+    comment = "Derived2 Comment"
+    options = {}
+
+    fromder2: bool
+
+
+def test_nested() -> None:
+    base_block = make_msgblock(Base)
+
+    assert base_block.comment == "Base Comment"
+    assert base_block.options["base"] == "foo"
+    assert len(base_block.fields) == 1
+    block_oo = next(iter((base_block.fields)))
+    assert block_oo.name == "choice"
+    assert isinstance(block_oo, Block)
+    assert len(block_oo) == 2
+
+    der1_block = make_msgblock(Derived1)
+    assert der1_block.comment == "Derived1 Comment"
+    assert der1_block.options["der1"] == "base"
+    assert len(der1_block.fields) == 2
+
+    der2_block = make_msgblock(Derived2)
+    assert der2_block.comment == "Derived2 Comment"
+    assert der2_block.options == {}
+    assert len(der2_block.fields) == 3

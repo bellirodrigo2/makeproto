@@ -136,6 +136,9 @@ class Block(HasMeta, ProtoModule):
                     f"Oneof Block should have a type. Found no type for field: {f.name}"
                 )
 
+    def __len__(self) -> int:
+        return len(self.fields)
+
     def __iter__(self) -> Iterator[Union[Field, Method, "Block"]]:
         return iter(self.fields)
 

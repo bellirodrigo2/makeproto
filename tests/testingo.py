@@ -115,3 +115,6 @@ print(isinstance(s, EnumOpt))
 
 print(isinstance(t, str))
 print(isinstance(t, EnumOpt))
+
+hello = object()
+print("->", getattr(hello, "world", None))

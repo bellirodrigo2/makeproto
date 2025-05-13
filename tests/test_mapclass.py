@@ -242,3 +242,65 @@ def test_map_class_fields_regular(cls, expected):
         assert res.default == default
         assert res.has_default == has_default
         assert res.extras == extras
+
+
+def test_nested_dataclass() -> None:
+
+    @dataclass
+    class Base:
+        frombase: str
+
+    @dataclass
+    class Derived1(Base):
+        fromder1: int
+
+    @dataclass
+    class Derived2(Derived1):
+        fromder2: List[int]
+
+    base_map = map_class_fields(Base)
+    assert len(base_map) == 1
+    assert base_map[0].name == "frombase"
+
+    der1_map = map_class_fields(Derived1)
+    assert len(der1_map) == 2
+    assert der1_map[0].name == "frombase"
+    assert der1_map[1].name == "fromder1"
+
+    der2_map = map_class_fields(Derived2)
+    assert len(der2_map) == 3
+    assert der2_map[0].name == "frombase"
+    assert der2_map[1].name == "fromder1"
+    assert der2_map[2].name == "fromder2"
+
+
+def test_nested_class() -> None:
+
+    class Base:
+        def __init__(self, frombase: str):
+            self.frombase = frombase
+
+    class Derived1(Base):
+        def __init__(self, frombase: str, fromder1: int):
+            self.fromder1 = fromder1
+            super().__init__(frombase)
+
+    class Derived2(Derived1):
+        def __init__(self, frombase: str, fromder1: int, fromder2: List[int]):
+            self.fromder2 = fromder2
+            super().__init__(frombase, fromder1)
+
+    base_map = map_class_fields(Base)
+    assert len(base_map) == 1
+    assert base_map[0].name == "frombase"
+
+    der1_map = map_class_fields(Derived1)
+    assert len(der1_map) == 2
+    assert der1_map[0].name == "frombase"
+    assert der1_map[1].name == "fromder1"
+
+    der2_map = map_class_fields(Derived2)
+    assert len(der2_map) == 3
+    assert der2_map[0].name == "frombase"
+    assert der2_map[1].name == "fromder1"
+    assert der2_map[2].name == "fromder2"
