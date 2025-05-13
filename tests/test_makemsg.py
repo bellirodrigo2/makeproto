@@ -16,14 +16,20 @@ from makeproto.prototypes import (
     Fixed64,
     Int32,
     OneOf,
+    ProtoOption,
     String,
     UInt32,
 )
 
 
 class Proto1(BaseMessage):
-    protofile = "proto"
-    package = "pack1"
+    @classmethod
+    def protofile(cls) -> str:
+        return "proto"
+
+    @classmethod
+    def package(cls) -> str:
+        return "pack1"
 
 
 class MyEnum(Proto1, Enum):
@@ -39,8 +45,13 @@ class Enum2(Proto1, Enum):
 @dataclass
 class Hello(Proto1):
 
-    comment = "Hello Comment"
-    options = {"foo": "bar"}
+    @classmethod
+    def comment(cls) -> str:
+        return "Hello Comment"
+
+    @classmethod
+    def options(cls) -> ProtoOption:
+        return {"foo": "bar"}
 
     a: Annotated[str, OneOf(key="choice")]
     aa: Annotated[Int32, OneOf(key="choice")]
@@ -80,8 +91,13 @@ def test_get_dataclass_block_ok() -> None:
 @dataclass
 class Fail(Proto1):
 
-    comment = 8
-    options = [1, 2, 3]
+    @classmethod
+    def comment(cls) -> str:
+        return 8
+
+    @classmethod
+    def options(cls) -> ProtoOption:
+        return [1, 2, 3]
 
     a: Annotated[str, OneOf(key=3)]
     b: Annotated[Path, 123]
@@ -107,7 +123,9 @@ def test_get_dataclass_block_fail() -> None:
 
 class Hello2(Proto1):
 
-    comment = "ClassicClass"
+    @classmethod
+    def comment(cls) -> str:
+        return "ClassicClass"
 
     def __init__(
         self,
@@ -153,8 +171,13 @@ def test_get_class_block_ok() -> None:
 @dataclass
 class Base(Proto1):
 
-    comment = "Base Comment"
-    options = {"base": "foo"}
+    @classmethod
+    def comment(cls) -> str:
+        return "Base Comment"
+
+    @classmethod
+    def options(cls) -> ProtoOption:
+        return {"base": "foo"}
 
     b1: Annotated[str, OneOf(key="choice")]
     b2: Annotated[Int32, OneOf(key="choice")]
@@ -163,8 +186,13 @@ class Base(Proto1):
 @dataclass
 class Derived1(Base):
 
-    comment = "Derived1 Comment"
-    options = {"der1": "base"}
+    @classmethod
+    def comment(cls) -> str:
+        return "Derived1 Comment"
+
+    @classmethod
+    def options(cls) -> ProtoOption:
+        return {"der1": "base"}
 
     fromder1: int
 
@@ -172,8 +200,13 @@ class Derived1(Base):
 @dataclass
 class Derived2(Derived1):
 
-    comment = "Derived2 Comment"
-    options = {}
+    @classmethod
+    def comment(cls) -> str:
+        return "Derived2 Comment"
+
+    @classmethod
+    def options(cls) -> ProtoOption:
+        return {}
 
     fromder2: bool
 

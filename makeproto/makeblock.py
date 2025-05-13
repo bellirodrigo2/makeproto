@@ -134,11 +134,11 @@ def make_msgblock(cls: type[BaseMessage]) -> Block:
         else:
             fields.add(field)
 
-    protofile = cls.protofile
-    package = cls.package
-    comment = cls.comment
-    options = cls.options
-    reserved = cls.reserved
+    protofile = cls.protofile()
+    package = cls.package()
+    comment = cls.comment()
+    options = cls.options()
+    reserved = cls.reserved()
 
     block_spec = FieldSpec(comment=comment, options=options)
     spec_exceptions = check_field_spec(block_spec, cls.__name__, False)
@@ -200,11 +200,11 @@ def make_enumblock(enum: type[BaseMessage]) -> Block:
             )
         )
 
-    protofile = enum.protofile
-    package = enum.package
-    comment = enum.comment
-    options = enum.options
-    reserved = enum.reserved
+    protofile = enum.protofile()
+    package = enum.package()
+    comment = enum.comment()
+    options = enum.options()
+    reserved = enum.reserved()
 
     block_spec = FieldSpec(comment=comment, options=options)
     spec_exceptions = check_field_spec(block_spec, enum.__name__, False)

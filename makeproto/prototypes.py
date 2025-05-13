@@ -10,34 +10,47 @@ class ProtoOption(Dict[str, Union[str, bool, EnumValue]]):
 
 
 class BaseProto:
+
     @classmethod
     def prototype(cls) -> str:
-        raise NotImplementedError("Subclasses should implement 'prototype'.")
+        raise NotImplementedError("protofile() must be implemented by the subclass")
 
     @classmethod
     def qualified_prototype(cls) -> str:
-        raise NotImplementedError("Subclasses should implement 'qualified_prototype'.")
+        raise NotImplementedError(
+            "qualified_prototype() must be implemented by the subclass"
+        )
 
 
-class ProtoMeta:
-    protofile: str
-    package: str
+class BaseMessage(BaseProto):
 
+    @classmethod
+    def protofile(cls) -> str:
+        raise NotImplementedError("protofile() must be implemented by the subclass")
 
-class ProtoHeader:
-    comment: str = ""
-    options: ProtoOption = ProtoOption()
-    reserved: List[str] = []
+    @classmethod
+    def package(cls) -> str:
+        return ""
 
+    @classmethod
+    def comment(cls) -> str:
+        return ""
 
-class BaseMessage(BaseProto, ProtoMeta, ProtoHeader):
+    @classmethod
+    def options(cls) -> ProtoOption:
+        return ProtoOption()
+
+    @classmethod
+    def reserved(cls) -> List[str]:
+        return []
+
     @classmethod
     def prototype(cls) -> str:
         return cls.__name__
 
     @classmethod
     def qualified_prototype(cls) -> str:
-        return f"{cls.package}.{cls.__name__}"
+        return f"{cls.package()}.{cls.__name__}"
 
 
 class BaseField(BaseProto):

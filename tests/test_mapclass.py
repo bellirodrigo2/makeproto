@@ -304,3 +304,122 @@ def test_nested_class() -> None:
     assert der2_map[0].name == "frombase"
     assert der2_map[1].name == "fromder1"
     assert der2_map[2].name == "fromder2"
+
+
+# Classes para teste da nova função
+class OnlyClassSimple:
+    x: int = 10
+
+
+class OnlyClassAnnotated:
+    a: Annotated[int, Meta1()] = 5
+
+
+class OnlyClassAnnotatedMultiple:
+    b: Annotated[str, Meta1(), Meta2()] = "hello"
+
+
+class OnlyClassOptional:
+    c: Optional[int]
+
+
+class OnlyClassOptionalDefaultNone:
+    d: Optional[int] = None
+
+
+class OnlyClassAnnotatedOptional:
+    e: Annotated[Optional[str], Meta1()] = None
+
+
+class OnlyClassUnion:
+    f: Union[int, str] = 42
+
+
+class OnlyClassNoDefault:
+    g: str
+
+
+class OnlyClassNoHint:
+    h = "abc"  # Este campo será ignorado
+
+
+@pytest.mark.parametrize(
+    "cls, expected",
+    [
+        (
+            OnlyClassSimple,
+            [("x", int, int, 10, True, None)],
+        ),
+        (
+            OnlyClassAnnotated,
+            [("a", Annotated[int, Meta1()], int, 5, True, (Meta1(),))],
+        ),
+        (
+            OnlyClassAnnotatedMultiple,
+            [
+                (
+                    "b",
+                    Annotated[str, Meta1(), Meta2()],
+                    str,
+                    "hello",
+                    True,
+                    (Meta1(), Meta2()),
+                )
+            ],
+        ),
+        (
+            OnlyClassOptional,
+            [("c", Optional[int], Optional[int], NO_DEFAULT, False, None)],
+        ),
+        (
+            OnlyClassOptionalDefaultNone,
+            [("d", Optional[int], Optional[int], None, True, None)],
+        ),
+        (
+            OnlyClassAnnotatedOptional,
+            [
+                (
+                    "e",
+                    Annotated[Optional[str], Meta1()],
+                    Optional[str],
+                    None,
+                    True,
+                    (Meta1(),),
+                )
+            ],
+        ),
+        (
+            OnlyClassUnion,
+            [("f", Union[int, str], Union[int, str], 42, True, None)],
+        ),
+        (
+            OnlyClassNoDefault,
+            [("g", str, str, NO_DEFAULT, False, None)],
+        ),
+    ],
+)
+def test_map_class_fields(cls, expected):
+    result = map_class_fields(cls)
+    assert len(result) == len(expected)
+
+    for res, exp in zip(result, expected):
+        name, argtype, basetype, default, has_default, extras = exp
+
+        assert res.name == name
+        assert res.argtype == argtype
+        assert res.basetype == basetype
+        assert res.default == default
+        assert res.has_default == has_default
+        assert res.extras == extras
+
+
+class Special:
+    @classmethod
+    def test(cls) -> str:
+        return "foobar"
+
+
+def test_method() -> None:
+
+    map = map_class_fields(Special)
+    assert not map

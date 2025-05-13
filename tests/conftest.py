@@ -1,4 +1,3 @@
-from dataclasses import dataclass
 from enum import Enum
 from typing import Annotated, List
 
@@ -8,16 +7,19 @@ from makeproto.prototypes import BaseMessage, FieldSpec, Float, Int32, OneOf, St
 
 
 class TesteMessage(BaseMessage):
-    protofile = "teste"
-    package = "pack1"
+    @classmethod
+    def protofile(cls) -> str:
+        return "teste"
+
+    @classmethod
+    def package(cls) -> str:
+        return "pack1"
 
 
-@dataclass
 class ID(TesteMessage):
     id: int
 
 
-@dataclass
 class User(TesteMessage):
     id: ID
     name: String
@@ -36,7 +38,6 @@ class User(TesteMessage):
     o4: Annotated[str, OneOf("oo1")]
 
 
-@dataclass
 class Code(TesteMessage):
     code: int
     pa: "ProductArea"
@@ -56,7 +57,6 @@ class Enum2(TesteMessage, Enum):
     e2 = 1
 
 
-@dataclass
 class Product(TesteMessage):
     name: String
     unit_price: dict[String, Float]
@@ -65,7 +65,6 @@ class Product(TesteMessage):
     enum2: Enum2
 
 
-@dataclass
 class Requisition(TesteMessage):
     user: User
     code: Code

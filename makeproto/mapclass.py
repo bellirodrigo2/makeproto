@@ -103,19 +103,38 @@ def field_factory(
 
 
 def map_class_fields(cls: type, bt_default_fallback: bool = True) -> list[FuncArg]:
-    if is_dataclass(cls):
-        items = [(f.name, f) for f in fields(cls)]
-        hint_source = cls
+
+    init_method = getattr(cls, "__init__", None)
+
+    if init_method and not isinstance(init_method, type(object.__init__)):
+        hint_source = init_method
     else:
-        sig = signature(cls.__init__)
-        items = [
-            (name, param) for name, param in sig.parameters.items() if name != "self"
-        ]
-        hint_source = cls.__init__
+        hint_source = cls
 
     hints = get_type_hints(
         hint_source, globalns=vars(sys.modules[cls.__module__]), include_extras=True
     )
+
+    if init_method and not isinstance(init_method, type(object.__init__)):
+        # Caso o __init__ tenha sido definido pelo usuário
+        sig = signature(init_method)
+        items = [
+            (name, param) for name, param in sig.parameters.items() if name != "self"
+        ]
+    elif is_dataclass(cls):
+        items = [(f.name, f) for f in fields(cls)]
+    else:
+        items = [
+            (
+                name,
+                Parameter(
+                    name,
+                    Parameter.POSITIONAL_OR_KEYWORD,
+                    default=getattr(cls, name, Parameter.empty),
+                ),
+            )
+            for name, _ in hints.items()
+        ]
 
     return [
         field_factory(obj, hints.get(name), bt_default_fallback) for name, obj in items
