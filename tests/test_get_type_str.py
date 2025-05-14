@@ -15,6 +15,7 @@ from makeproto.prototypes import (
     Float,
     Int32,
     Int64,
+    ProtoModule,
     SInt32,
     SInt64,
     String,
@@ -80,6 +81,9 @@ class IntClass:
     f14: Annotated[Fixed32, "foobar"]
     f15: Fixed64
     f16: Annotated[Fixed64, "foobar"]
+
+
+proto = ProtoModule("proto1")
 
 
 class C1(BaseMessage): ...

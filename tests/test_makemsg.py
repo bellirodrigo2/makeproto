@@ -76,7 +76,7 @@ class Hello(Proto1):
 
 def test_get_dataclass_block_ok() -> None:
 
-    block = make_msgblock(Hello)
+    block = make_msgblock(Hello, "", "")
     assert len(block.fields) == 13
     assert len([x for x in block.fields if isinstance(x, Block)]) == 2
     assert block.name == "Hello"
@@ -116,7 +116,7 @@ class Fail(Proto1):
 def test_get_dataclass_block_fail() -> None:
 
     try:
-        make_msgblock(Fail)
+        make_msgblock(Fail, "", "")
     except ProtoBlockError as e:
         assert len(e) == 14
 
@@ -157,7 +157,7 @@ class Hello2(Proto1):
 
 def test_get_class_block_ok() -> None:
 
-    block = make_msgblock(Hello2)
+    block = make_msgblock(Hello2, "", "")
     assert len(block.fields) == 13
     assert len([x for x in block.fields if isinstance(x, Block)]) == 2
     assert block.name == "Hello2"
@@ -212,7 +212,7 @@ class Derived2(Derived1):
 
 
 def test_nested() -> None:
-    base_block = make_msgblock(Base)
+    base_block = make_msgblock(Base, "", "")
 
     assert base_block.comment == "Base Comment"
     assert base_block.options["base"] == "foo"
@@ -222,12 +222,12 @@ def test_nested() -> None:
     assert isinstance(block_oo, Block)
     assert len(block_oo) == 2
 
-    der1_block = make_msgblock(Derived1)
+    der1_block = make_msgblock(Derived1, "", "")
     assert der1_block.comment == "Derived1 Comment"
     assert der1_block.options["der1"] == "base"
     assert len(der1_block.fields) == 2
 
-    der2_block = make_msgblock(Derived2)
+    der2_block = make_msgblock(Derived2, "", "")
     assert der2_block.comment == "Derived2 Comment"
     assert der2_block.options == {}
     assert len(der2_block.fields) == 3

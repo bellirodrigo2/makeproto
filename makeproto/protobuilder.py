@@ -84,7 +84,7 @@ class Protobuilder:
 
         blocks: set[Block] = set()
         for cls in classes:
-            msgs = cls_to_blocks(cls)
+            msgs = cls_to_blocks(cls, service.protofile, service.package)
             blocks.update(msgs)
 
         for block in blocks:

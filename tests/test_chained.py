@@ -14,7 +14,7 @@ def test_chanied(
     requisition: type[BaseMessage],
 ) -> None:
 
-    msgs = cls_to_blocks(requisition)
+    msgs = cls_to_blocks(tgt=requisition, default_protofile="", default_package="")
 
     msg_names = [msg.name for msg in msgs]
     assert id.__name__ in msg_names

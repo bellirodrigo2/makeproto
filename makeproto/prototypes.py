@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 class EnumValue(str):
@@ -13,20 +13,32 @@ class BaseProto:
 
     @classmethod
     def prototype(cls) -> str:
-        raise NotImplementedError("protofile() must be implemented by the subclass")
+        raise NotImplementedError(
+            f"prototype() must be implemented by the subclass. Not implemented for: {cls.__name__}"
+        )
 
     @classmethod
     def qualified_prototype(cls) -> str:
         raise NotImplementedError(
-            "qualified_prototype() must be implemented by the subclass"
+            "qualified_prototype() must be implemented by the subclass. Not implemented for: {cls.__name__}"
         )
 
 
 class BaseMessage(BaseProto):
 
     @classmethod
+    def prototype(cls) -> str:
+        return cls.__name__
+
+    @classmethod
+    def qualified_prototype(cls) -> str:
+        return f"{cls.package()}.{cls.__name__}"
+
+    @classmethod
     def protofile(cls) -> str:
-        raise NotImplementedError("protofile() must be implemented by the subclass")
+        raise NotImplementedError(
+            f"protofile() must be implemented by the subclass. Not Found for: {cls.__name__}"
+        )
 
     @classmethod
     def package(cls) -> str:
@@ -44,13 +56,43 @@ class BaseMessage(BaseProto):
     def reserved(cls) -> List[str]:
         return []
 
-    @classmethod
-    def prototype(cls) -> str:
-        return cls.__name__
 
-    @classmethod
-    def qualified_prototype(cls) -> str:
-        return f"{cls.package()}.{cls.__name__}"
+class ProtoModule:
+    def __init__(self, profile: str, package: str = ""):
+        self.profile = profile
+        self.package_name = package
+
+    def __call__(self, cls: type) -> type:
+        cls.protofile = classmethod(lambda cls_: self.profile)
+        cls.package = classmethod(lambda cls_: self.package_name)
+        cls.prototype = classmethod(lambda cls_: cls_.__name__)
+        cls.qualified_prototype = classmethod(
+            lambda cls_: f"{cls.package()}.{cls.__name__}"
+        )
+
+        cls.comment = classmethod(lambda cls_: "")
+        cls.options = classmethod(lambda cls_: ProtoOption())
+        cls.reserved = classmethod(lambda cls_: [])
+
+        return cls
+
+
+class ProtoHeader:
+    def __init__(
+        self,
+        comment: str = "",
+        options: Optional[dict] = None,
+        reserved: Optional[list] = None,
+    ):
+        self.comment = comment
+        self.options = ProtoOption(**(options or {}))
+        self.reserved = reserved or []
+
+    def __call__(self, cls: type) -> type:
+        cls.comment = classmethod(lambda cls_: self.comment)
+        cls.options = classmethod(lambda cls_: self.options)
+        cls.reserved = classmethod(lambda cls_: self.reserved)
+        return cls
 
 
 class BaseField(BaseProto):

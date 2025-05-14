@@ -5,7 +5,7 @@ from makeproto.prototypes import ProtoOption
 
 
 @dataclass
-class ProtoModule:
+class HasProtoModule:
     protofile: str
     package: Optional[str]
 
@@ -76,7 +76,7 @@ class Method(HasMeta):
 
 
 @dataclass
-class Block(HasMeta, ProtoModule):
+class Block(HasMeta, HasProtoModule):
     name: str
     block_type: Literal["message", "enum", "oneof", "service"]
     fields: Set[Union[Field, Method, "Block"]]
@@ -160,7 +160,7 @@ class Block(HasMeta, ProtoModule):
 
 
 @dataclass
-class ProtoBlocks(HasMeta, ProtoModule):
+class ProtoBlocks(HasMeta, HasProtoModule):
     blocks: Set[Block] = field(default_factory=set)
 
     def __iter__(

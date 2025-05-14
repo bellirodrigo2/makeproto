@@ -1,6 +1,7 @@
+import profile
 from collections import defaultdict
 from enum import Enum
-from typing import Any, List, Optional, Set
+from typing import Any, List, Optional, Set, Tuple
 
 from makeproto.exceptions import ProtoBlockError
 from makeproto.mapclass import FuncArg, map_class_fields
@@ -93,7 +94,31 @@ def check_field_spec(
     return exceptions
 
 
-def make_msgblock(cls: type[BaseMessage]) -> Block:
+def get_headers(
+    cls: type[BaseMessage],
+) -> Tuple[Optional[str], Optional[str], str, ProtoOption, List[Any]]:
+
+    protofile_method = getattr(cls, "protofile", None)
+    protofile: Optional[str] = None if protofile_method is None else protofile_method()
+
+    package_method = getattr(cls, "package", None)
+    package: Optional[str] = None if package_method is None else package_method()
+
+    comment_method = getattr(cls, "comment", None)
+    comment: str = "" if comment_method is None else comment_method()
+
+    options_method = getattr(cls, "options", None)
+    options: ProtoOption = ProtoOption() if options_method is None else options_method()
+
+    reserved_method = getattr(cls, "reserved", None)
+    reserved: List[str] = [] if reserved_method is None else reserved_method()
+
+    return protofile, package, comment, options, reserved
+
+
+def make_msgblock(
+    cls: type[BaseMessage], default_protofile: str, default_package: str
+) -> Block:
 
     args = map_class_fields(cls, False)
 
@@ -134,11 +159,11 @@ def make_msgblock(cls: type[BaseMessage]) -> Block:
         else:
             fields.add(field)
 
-    protofile = cls.protofile()
-    package = cls.package()
-    comment = cls.comment()
-    options = cls.options()
-    reserved = cls.reserved()
+    protofile, package, comment, options, reserved = get_headers(cls)
+    if protofile is None:
+        protofile = default_protofile
+    if package is None:
+        package = default_package
 
     block_spec = FieldSpec(comment=comment, options=options)
     spec_exceptions = check_field_spec(block_spec, cls.__name__, False)
@@ -177,7 +202,9 @@ def make_msgblock(cls: type[BaseMessage]) -> Block:
     return block
 
 
-def make_enumblock(enum: type[BaseMessage]) -> Block:
+def make_enumblock(
+    enum: type[BaseMessage], default_protofile: str, default_package: str
+) -> Block:
 
     exceptions: List[Exception] = []
 
@@ -200,11 +227,11 @@ def make_enumblock(enum: type[BaseMessage]) -> Block:
             )
         )
 
-    protofile = enum.protofile()
-    package = enum.package()
-    comment = enum.comment()
-    options = enum.options()
-    reserved = enum.reserved()
+    protofile, package, comment, options, reserved = get_headers(enum)
+    if protofile is None:
+        protofile = default_protofile
+    if package is None:
+        package = default_package
 
     block_spec = FieldSpec(comment=comment, options=options)
     spec_exceptions = check_field_spec(block_spec, enum.__name__, False)
@@ -228,6 +255,8 @@ def make_enumblock(enum: type[BaseMessage]) -> Block:
 
 def cls_to_blocks(
     tgt: type[BaseMessage],
+    default_protofile: str,
+    default_package: str,
     visited: Optional[set[Block]] = None,
 ) -> set[Block]:
 
@@ -242,18 +271,20 @@ def cls_to_blocks(
         return visited
 
     if issubclass(tgt, Enum):
-        enumblock = make_enumblock(tgt)
+        enumblock = make_enumblock(tgt, default_protofile, default_package)
         visited.add(enumblock)
 
     elif issubclass(tgt, BaseMessage):  # type: ignore
-        msgblock = make_msgblock(tgt)
+        msgblock = make_msgblock(tgt, default_protofile, default_package)
         visited.add(msgblock)
 
         args = map_class_fields(tgt, False)
 
         for arg in args:
-            if arg.istype(Enum) or arg.istype(BaseMessage):
-                msgs = cls_to_blocks(arg.basetype, visited)
+            if arg.istype(BaseMessage):
+                msgs = cls_to_blocks(
+                    arg.basetype, default_protofile, default_package, visited
+                )
                 visited.update(msgs)
 
     return visited
