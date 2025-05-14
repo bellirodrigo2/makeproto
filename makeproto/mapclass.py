@@ -107,34 +107,38 @@ def map_class_fields(cls: type, bt_default_fallback: bool = True) -> list[FuncAr
     init_method = getattr(cls, "__init__", None)
 
     if init_method and not isinstance(init_method, type(object.__init__)):
-        hint_source = init_method
-    else:
-        hint_source = cls
-
-    hints = get_type_hints(
-        hint_source, globalns=vars(sys.modules[cls.__module__]), include_extras=True
-    )
-
-    if init_method and not isinstance(init_method, type(object.__init__)):
-        # Caso o __init__ tenha sido definido pelo usuário
+        hints = get_type_hints(
+            init_method, globalns=vars(sys.modules[cls.__module__]), include_extras=True
+        )
         sig = signature(init_method)
-        items = [
+        items: list[tuple[str, Parameter]] = [
             (name, param) for name, param in sig.parameters.items() if name != "self"
         ]
-    elif is_dataclass(cls):
-        items = [(f.name, f) for f in fields(cls)]
-    else:
-        items = [
-            (
-                name,
-                Parameter(
-                    name,
-                    Parameter.POSITIONAL_OR_KEYWORD,
-                    default=getattr(cls, name, Parameter.empty),
-                ),
-            )
-            for name, _ in hints.items()
+        return [
+            field_factory(obj, hints.get(name), bt_default_fallback)
+            for name, obj in items
         ]
+    else:
+        return map_model_fields(cls, bt_default_fallback)
+
+
+def map_model_fields(cls: type, bt_default_fallback: bool = True) -> list[FuncArg]:
+
+    hints = get_type_hints(
+        cls, globalns=vars(sys.modules[cls.__module__]), include_extras=True
+    )
+
+    items = [
+        (
+            name,
+            Parameter(
+                name,
+                Parameter.POSITIONAL_OR_KEYWORD,
+                default=getattr(cls, name, Parameter.empty),
+            ),
+        )
+        for name, _ in hints.items()
+    ]
 
     return [
         field_factory(obj, hints.get(name), bt_default_fallback) for name, obj in items

@@ -1,3 +1,4 @@
+import enum
 import importlib.util
 from enum import Enum
 from functools import partial
@@ -18,7 +19,7 @@ from typing import (
     ValuesView,
 )
 
-from makeproto.mapclass import FuncArg, map_class_fields
+from makeproto.mapclass import FuncArg, map_model_fields
 from makeproto.prototypes import BaseProto
 
 
@@ -26,6 +27,9 @@ class Message(BaseProto):
     # _proto_cls: Optional[type[Any]] = None
 
     def __init__(self, _proto_proxy: Any = None, **kwargs: Any):
+
+        if isinstance(self, enum.Enum):
+            return
         if _proto_proxy:
             self._proto = _proto_proxy
         else:
@@ -282,10 +286,19 @@ def make_setter(field: FuncArg) -> Callable[[Any, Any], None]:
     def assign_value(self: Message, value: Any, set_v: Callable[[Any], Any]) -> None:
         try:
             setattr(self._proto, name, set_v(value))
-        except (TypeError, AttributeError):
+        except (TypeError, AttributeError) as e:
             raise TypeError(
                 f'At class "{self.__class__.__name__}", field: "{name}" set: Expected "{bt.__name__}", found "{type(value).__name__}":{value}'
-            )
+            ) from e
+
+    def assign_message(self: Message, value: Any) -> None:
+        try:
+            target = getattr(self._proto, name)
+            target.CopyFrom(value.unwrap())
+        except (TypeError, AttributeError) as e:
+            raise TypeError(
+                f'At class "{self.__class__.__name__}", field: "{name}" set: Expected "{bt.__name__}", found "{type(value).__name__}":{value}'
+            ) from e
 
     if origin is list:
         bt = args[0]
@@ -295,10 +308,21 @@ def make_setter(field: FuncArg) -> Callable[[Any, Any], None]:
             try:
                 target = getattr(self._proto, name)
                 target[:] = [set_v(v) for v in value]
-            except (TypeError, AttributeError):
+            except (TypeError, AttributeError) as e:
                 raise TypeError(
                     f'At class "{self.__class__.__name__}", field: "{name}" set: Expected "List[{bt.__name__}]", found "{type(value).__name__}":{value}'
-                )
+                ) from e
+
+        def set_list_message(self: Message, value: Any) -> None:
+            try:
+                target = getattr(self._proto, name)
+                del target[:]
+                for item in value:
+                    target.add().CopyFrom(item.unwrap())
+            except Exception as e:
+                raise TypeError(
+                    f'At class "{self.__class__.__name__}", field: "{name}" list[message] set failed: {value}'
+                ) from e
 
         if issubclass(bt, Enum):
             return partial(set_list, set_v=lambda x: x.value)
@@ -318,10 +342,21 @@ def make_setter(field: FuncArg) -> Callable[[Any, Any], None]:
                 target.clear()
                 for k, v in value.items():
                     target[k] = set_v(v)
-            except (TypeError, AttributeError):
+            except (TypeError, AttributeError) as e:
                 raise TypeError(
                     f'At class "{self.__class__.__name__}", field: "{name}" set: Expected "dict[{args[0].__name__},{bt.__name__}]", found "{type(value).__name__}": {value}'
-                )
+                ) from e
+
+        def set_dict_message(self: Message, value: Any) -> None:
+            try:
+                target = getattr(self._proto, name)
+                target.clear()
+                for k, v in value.items():
+                    target[k].CopyFrom(v.unwrap())
+            except Exception as e:
+                raise TypeError(
+                    f'At class "{self.__class__.__name__}", field: "{name}" dict[message] set failed: {value}'
+                ) from e
 
         if issubclass(bt, Enum):
             return partial(set_dict, set_v=lambda x: x.value)
@@ -334,7 +369,7 @@ def make_setter(field: FuncArg) -> Callable[[Any, Any], None]:
         if issubclass(bt, Enum):
             return partial(assign_value, set_v=lambda x: x.value)
         elif issubclass(bt, Message):
-            return partial(assign_value, set_v=lambda x: x.unwrap())
+            return assign_message
     return partial(assign_value, set_v=lambda x: x)
 
 
@@ -371,7 +406,6 @@ def bind_proxy(
         return clss
 
     tgtcls = tgtcls or mapcls
-
     if hasattr(tgtcls, "_proto_cls"):
         return  # already bound
 
@@ -381,7 +415,7 @@ def bind_proxy(
     proto_cls = get_class(protofile(), mapcls.__name__)
     setattr(tgtcls, "_proto_cls", proto_cls)
 
-    fields = map_class_fields(mapcls)
+    fields = map_model_fields(mapcls)
     slot_names = tuple(f.name for f in fields)
 
     tgtcls.__slots__ = slot_names + ("_proto",)

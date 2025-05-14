@@ -1,51 +1,51 @@
 syntax= "proto3";
 enum ProductArea {
   Area1 = 0;
-  Area3 = 2;
   Area2 = 1;
+  Area3 = 2;
 }
 enum Enum2 {
-  e1 = 0;
   e2 = 1;
+  e1 = 0;
 }
 message ID {
   int64 id = 0;
 }
 message Code {
-  repeated ProductArea le = 0;
-  map<string, Enum2> me = 0;
-  repeated string s = 0;
   int64 code = 0;
   ProductArea pa = 0;
+  repeated string s = 0;
+  repeated ProductArea le = 0;
+  map<string, Enum2> me = 0;
 }
 message User {
-  ID id = 0;
-  oneof oo1 {
-  string o4 = 0;
-  int64 o3 = 0;
-  bool o1 = 0;
-  string o2 = 0;
-}
-  string lastname = 0;
-  int64 age = 0;
-  string name = 0;
+  ProductArea pa = 0;
   repeated string tags = 0;
+  int64 age = 0;
   // email comment
 string email = 0 [json_name = "email_field"];
   Code code2 = 0;
-  ProductArea pa = 0;
+  oneof oo1 {
+  int64 o3 = 0;
+  bool o1 = 0;
+  string o2 = 0;
+  string o4 = 0;
+}
+  string name = 0;
+  string lastname = 0;
+  ID id = 0;
 }
 message Product {
   ProductArea area = 0;
-  Enum2 enum2 = 0;
-  Code code = 0;
   string name = 0;
   map<string, float> unit_price = 0;
+  Enum2 enum2 = 0;
+  Code code = 0;
 }
 message Requisition {
+  Product product = 0;
+  int32 quantity = 0;
   User user = 0;
   Enum2 enum2 = 0;
-  Product product = 0;
   Code code = 0;
-  int32 quantity = 0;
 }

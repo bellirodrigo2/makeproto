@@ -1,30 +1,61 @@
+from enum import Enum
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Annotated, List, Mapping, Sequence
 
 import pytest
 
-from makeproto.prototypes import Float, String
+from makeproto.prototypes import FieldSpec, Float, OneOf, String
 from makeproto.proxy import Message, bind_proxy, import_py_files_from_folder
-from tests.conftest import Code, Enum2, ProductArea
 
 
-class ProxyID(Message): ...
-
-
-class ProxyUser(Message): ...
-
-
-class ProxyCode(Message): ...
-
-
-class ProxyProduct(Message): ...
-
-
-class Product(Message):
+class ProtoMessage(Message):
     @classmethod
     def protofile(cls) -> str:
         return "teste"
 
+
+class ID(ProtoMessage):
+    id: int
+
+
+class User(ProtoMessage):
+    id: ID
+    name: String
+    lastname: str
+    email: Annotated[
+        String, FieldSpec(comment="email comment", options={"json_name": "email_field"})
+    ]
+    age: int
+    tags: list[String]
+    code2: "Code"
+    pa: "ProductArea"
+
+    o1: Annotated[bool, OneOf("oo1")]
+    o2: Annotated[str, OneOf("oo1")]
+    o3: Annotated[int, OneOf("oo1")]
+    o4: Annotated[str, OneOf("oo1")]
+
+
+class Code(ProtoMessage):
+    code: int
+    pa: "ProductArea"
+    s: List[str]
+    le: list["ProductArea"]
+    me: dict[str, "Enum2"]
+
+
+class ProductArea(Enum):
+    Area1 = 0
+    Area2 = 1
+    Area3 = 2
+
+
+class Enum2(Enum):
+    e1 = 0
+    e2 = 1
+
+
+class Product(ProtoMessage):
     name: String
     unit_price: dict[String, Float]
     code: Code
@@ -32,33 +63,25 @@ class Product(Message):
     enum2: Enum2
 
 
-def test_proxy(
-    id: type,
-    prodarea: type,
-    enum2: type,
-    code: type,
-    # product: type,
-    user: type,
-    requisition: type,
-) -> None:
+def test_proxy() -> None:
 
     p = Path(__file__).parent / "proto" / "compiled"
 
     modules = import_py_files_from_folder(p)
 
-    bind_proxy(id, modules, ProxyID)
-    bind_proxy(user, modules, ProxyUser)
-    bind_proxy(code, modules, ProxyCode)
+    bind_proxy(ID, modules)
+    bind_proxy(User, modules)
+    bind_proxy(Code, modules)
     bind_proxy(Product, modules)
     # bind_proxy(Requisition, modules)
 
     # ID Tests
     n = 15
-    proxy_id = ProxyID(id=n)
+    proxy_id = ID(id=n)
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap()
     assert proto_id.id == n
-    proxy_id2 = ProxyID(_proto_proxy=proto_id)
+    proxy_id2 = ID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
 
     n = 13
@@ -66,7 +89,7 @@ def test_proxy(
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap()
     assert proto_id.id == n
-    proxy_id2 = ProxyID(_proto_proxy=proto_id)
+    proxy_id2 = ID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
 
     n = 12
@@ -75,7 +98,7 @@ def test_proxy(
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap()
     assert proto_id.id == n
-    proxy_id2 = ProxyID(_proto_proxy=proto_id)
+    proxy_id2 = ID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
 
     n = 11
@@ -84,13 +107,13 @@ def test_proxy(
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap()
     assert proto_id.id == n
-    proxy_id2 = ProxyID(_proto_proxy=proto_id)
+    proxy_id2 = ID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
 
     # Enum Tests
 
-    obj_prodarea = prodarea.Area1
-    obj_enum2 = enum2.e1
+    obj_prodarea = ProductArea.Area1
+    obj_enum2 = Enum2.e1
 
     # Code Tests
 
@@ -99,7 +122,7 @@ def test_proxy(
     le = [obj_prodarea]
     me = {"foo": obj_enum2}
 
-    proxy_code = ProxyCode(code=code_num, pa=obj_prodarea, s=s, le=le, me=me)
+    proxy_code = Code(code=code_num, pa=obj_prodarea, s=s, le=le, me=me)
     assert proxy_code.code == code_num
     assert proxy_code.pa == obj_prodarea
     assert proxy_code.s == s
@@ -113,7 +136,7 @@ def test_proxy(
     assert proto_code.le == [l.value for l in le]
     assert proto_code.me == {k: v.value for k, v in me.items()}
 
-    proxy_code2 = ProxyCode(_proto_proxy=proto_code)
+    proxy_code2 = Code(_proto_proxy=proto_code)
     assert proxy_code2.code == code_num
     assert proxy_code2.pa == obj_prodarea
     assert proxy_code2.s == s
@@ -123,10 +146,10 @@ def test_proxy(
     assert proxy_code == proxy_code2
 
     # enum
-    proxy_code.pa = prodarea.Area2
-    assert proxy_code.pa == prodarea.Area2
-    assert proto_code.pa == prodarea.Area2.value
-    assert proxy_code2.pa == prodarea.Area2
+    proxy_code.pa = ProductArea.Area2
+    assert proxy_code.pa == ProductArea.Area2
+    assert proto_code.pa == ProductArea.Area2.value
+    assert proxy_code2.pa == ProductArea.Area2
 
     # list
 
@@ -213,7 +236,7 @@ def test_proxy(
     assert proto1 is proto2
     # dict
 
-    assert proto_code.me["foo"] == enum2.e1.value
+    assert proto_code.me["foo"] == Enum2.e1.value
 
     assert "foo" in proxy_code.me
     del proxy_code.me["foo"]
@@ -222,34 +245,34 @@ def test_proxy(
     assert proxy_code.me == {}
     assert proto_code.me == {}
 
-    proxy_code.me["abc"] = enum2.e2
-    assert proxy_code.me["abc"] == enum2.e2
-    assert proto_code.me["abc"] == enum2.e2.value
+    proxy_code.me["abc"] = Enum2.e2
+    assert proxy_code.me["abc"] == Enum2.e2
+    assert proto_code.me["abc"] == Enum2.e2.value
 
     looped = False
     for k, v in proxy_code.me.items():
         looped = True
         assert isinstance(k, str)
-        assert isinstance(v, enum2)
+        assert isinstance(v, Enum2)
     assert looped
 
-    proxy_code.me["123"] = enum2.e1
-    assert proxy_code.me["123"] == enum2.e1
-    assert proto_code.me["123"] == enum2.e1.value
+    proxy_code.me["123"] = Enum2.e1
+    assert proxy_code.me["123"] == Enum2.e1
+    assert proto_code.me["123"] == Enum2.e1.value
 
     dictkeys = proxy_code.me.keys()
     assert dictkeys == ["abc", "123"]
 
     dictvalues = proxy_code.me.values()
-    assert dictvalues == [enum2.e2, enum2.e1]
+    assert dictvalues == [Enum2.e2, Enum2.e1]
 
     dictitems = proxy_code.me.items()
-    assert dictitems == [("abc", enum2.e2), ("123", enum2.e1)]
+    assert dictitems == [("abc", Enum2.e2), ("123", Enum2.e1)]
 
-    assert proxy_code.me.get("abc") == enum2.e2
+    assert proxy_code.me.get("abc") == Enum2.e2
     assert proxy_code.me.get("nonexistent_key") is None
 
-    assert proxy_code.me.pop("abc") == enum2.e2
+    assert proxy_code.me.pop("abc") == Enum2.e2
     assert "abc" not in proxy_code.me
     assert proxy_code.me.get("abc") is None
 
@@ -257,19 +280,19 @@ def test_proxy(
     assert proxy_code.me == {}
     assert proto_code.me == {}
 
-    proxy_code.me.update({"new_key": enum2.e1})
+    proxy_code.me.update({"new_key": Enum2.e1})
     assert "new_key" in proxy_code.me
-    assert proxy_code.me["new_key"] == enum2.e1
+    assert proxy_code.me["new_key"] == Enum2.e1
 
-    default_value = enum2.e2
-    assert proxy_code.me.setdefault("new_key", default_value) == enum2.e1
-    assert proxy_code.me.get("new_key") == enum2.e1
+    default_value = Enum2.e2
+    assert proxy_code.me.setdefault("new_key", default_value) == Enum2.e1
+    assert proxy_code.me.get("new_key") == Enum2.e1
 
     assert proxy_code.me.get("no_existant", None) is None
     assert proxy_code.me.get("no_existant", 45) == 45
 
     assert len(proxy_code.me) == 1
-    proxy_code.me.set("new_key2", enum2.e1)
+    proxy_code.me.set("new_key2", Enum2.e1)
     assert len(proxy_code.me) == 2
 
     with pytest.raises(TypeError, match="set method for key:"):
@@ -288,7 +311,7 @@ def test_proxy(
 
     # assign wrong types
     with pytest.raises(TypeError, match="set: Expected "):
-        ProxyCode(code="not an int")
+        Code(code="not an int")
 
     with pytest.raises(TypeError, match="set: Expected "):
         proxy_code.pa = "not an enum"
@@ -421,7 +444,7 @@ def test_proxy(
 #     assert not proto_req.user.o3 and not obj_user.o3
 #     assert not proto_req.user.o4 and not obj_user.o4
 
-#     assert proto_req.enum2 == obj_enum2.value
+#     assert proto_req.enum2 == obj_Enum2.value
 #     assert proto_req.quantity == quantity
 
 #     cls_req = converter.from_proto(proto_req, requisition)
