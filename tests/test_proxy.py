@@ -3,7 +3,9 @@ from typing import Mapping, Sequence
 
 import pytest
 
+from makeproto.prototypes import Float, String
 from makeproto.proxy import Message, bind_proxy, import_py_files_from_folder
+from tests.conftest import Code, Enum2, ProductArea
 
 
 class ProxyID(Message): ...
@@ -15,12 +17,27 @@ class ProxyUser(Message): ...
 class ProxyCode(Message): ...
 
 
-def test_convert(
+class ProxyProduct(Message): ...
+
+
+class Product(Message):
+    @classmethod
+    def protofile(cls) -> str:
+        return "teste"
+
+    name: String
+    unit_price: dict[String, Float]
+    code: Code
+    area: ProductArea
+    enum2: Enum2
+
+
+def test_proxy(
     id: type,
     prodarea: type,
     enum2: type,
     code: type,
-    product: type,
+    # product: type,
     user: type,
     requisition: type,
 ) -> None:
@@ -32,7 +49,7 @@ def test_convert(
     bind_proxy(id, modules, ProxyID)
     bind_proxy(user, modules, ProxyUser)
     bind_proxy(code, modules, ProxyCode)
-    # bind_proxy(Product, modules)
+    bind_proxy(Product, modules)
     # bind_proxy(Requisition, modules)
 
     # ID Tests
@@ -178,6 +195,16 @@ def test_convert(
     assert proto_code.s == []
     assert proxy_code2.s == []
 
+    proxy_code.s.append("foo")
+
+    with pytest.raises(TypeError, match="At ListProxy set method for index:"):
+        proxy_code.s[0] = 4
+    with pytest.raises(TypeError, match="At ListProxy append method: Expected"):
+        proxy_code.s.append(4)
+
+    with pytest.raises(TypeError, match="At ListProxy extend method: Expected"):
+        proxy_code.s.extend(4)
+
     assert isinstance(proxy_code.s, Sequence)
 
     # unwrap
@@ -245,35 +272,49 @@ def test_convert(
     proxy_code.me.set("new_key2", enum2.e1)
     assert len(proxy_code.me) == 2
 
+    with pytest.raises(TypeError, match="set method for key:"):
+        proxy_code.me.set("new_key2", 0)
+
+    with pytest.raises(TypeError, match=" to None on DictProxy"):
+        proxy_code.me.set("new_key2", None)
+
+    with pytest.raises(TypeError, match="set method for key:"):
+        proxy_code.me["new_key2"] = 0
+
+    with pytest.raises(TypeError, match=" to None on DictProxy"):
+        proxy_code.me["new_key2"] = None
+
     assert isinstance(proxy_code.me, Mapping)
 
     # assign wrong types
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError, match="set: Expected "):
         ProxyCode(code="not an int")
 
-    with pytest.raises(AttributeError):
+    with pytest.raises(TypeError, match="set: Expected "):
         proxy_code.pa = "not an enum"
 
-    # AttributeError
-    # proxy_code = ProxyCode(
-    # code=code_num, pa=obj_prodarea, s=s, le=le, me={"foo": "bar"}
-    # )
-    # proxy_code.me["hello"] = "world"
+    with pytest.raises(TypeError, match="set: Expected "):
+        proxy_code.code = "not an int"
+
+    with pytest.raises(TypeError, match="set: Expected "):
+        proxy_code.s = 3
+
+    with pytest.raises(TypeError, match="set: Expected "):
+        proxy_code.me = 3
+
+    #     # PRoduct TEst
+
+    name = "John"
+    unit_price = {"foo": 3.1415}
+    proxy_prod = Product(
+        name=name,
+        unit_price=unit_price,
+        code=proxy_code,
+        area=obj_prodarea,
+        enum2=obj_enum2,
+    )
 
 
-#     # PRoduct TEst
-
-#     name = "John"
-#     unit_price = {"foo": 3.1415}
-#     obj_prod = product(
-#         name=name,
-#         unit_price=unit_price,
-#         code=obj_code,
-#         area=obj_prodarea,
-#         enum2=obj_enum2,
-#     )
-
-#     proto_product = converter.to_proto(obj_prod)
 #     assert proto_product.name == name
 
 #     for k, v in proto_product.unit_price.items():
