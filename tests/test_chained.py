@@ -1,6 +1,7 @@
 from enum import Enum
+from typing import Set
 
-from makeproto.makeblock import cls_to_blocks
+from makeproto.makeblock import cls_map, cls_to_blocks
 from makeproto.prototypes import BaseMessage
 
 
@@ -14,9 +15,23 @@ def test_chanied(
     requisition: type[BaseMessage],
 ) -> None:
 
-    msgs = cls_to_blocks(tgt=requisition, default_protofile="", default_package="")
+    blocks = cls_to_blocks(tgt=requisition, default_protofile="", default_package="")
 
-    msg_names = [msg.name for msg in msgs]
+    block_names = [block.name for block in blocks]
+    assert id.__name__ in block_names
+    assert prodarea.__name__ in block_names
+    assert user.__name__ in block_names
+    assert code.__name__ in block_names
+    assert product.__name__ in block_names
+    assert enum2.__name__ in block_names
+    assert requisition.__name__ in block_names
+    assert len(block_names) == 7
+
+    msgs: Set[BaseMessage] = cls_map(
+        tgt=requisition, default_protofile="", default_package=""
+    )
+
+    msg_names = [msg.__name__ for msg in msgs]
     assert id.__name__ in msg_names
     assert prodarea.__name__ in msg_names
     assert user.__name__ in msg_names

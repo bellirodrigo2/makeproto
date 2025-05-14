@@ -3,66 +3,215 @@ from enum import Enum
 from functools import partial
 from pathlib import Path
 from types import ModuleType
-from typing import Any, Callable, Dict
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    ItemsView,
+    Iterator,
+    KeysView,
+    List,
+    MutableMapping,
+    MutableSequence,
+    Union,
+    ValuesView,
+)
 
 from makeproto.mapclass import FuncArg, map_class_fields
 from makeproto.prototypes import BaseProto
 
 
 class Message(BaseProto):
-    def __init__(self, proto: Any = None, **kwargs: Any):
-        if proto:
-            self._proto = proto
+    # _proto_cls: Optional[type[Any]] = None
+
+    def __init__(self, _proto_proxy: Any = None, **kwargs: Any):
+        if _proto_proxy:
+            self._proto = _proto_proxy
         else:
             proto_class = getattr(self.__class__, "_proto_cls", None)
             if proto_class is None:
-                raise TypeError
+                raise TypeError(f'"_proto_cls" not set for "{self.__class__.__name__}"')
             self._proto = proto_class()
             for k, v in kwargs.items():
                 setattr(self, k, v)
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Message):
+            return False
+        return self._proto == other._proto
+
     def unwrap(self) -> Any:
         return self._proto
 
-
-def get_enum(value: Any, enum_type: type[Enum]) -> Enum:
-    return enum_type(value)
-
-
-def set_enum(value: Enum) -> Any:
-    return value.value
-
-
-def get_basemsg(value: Any, cls: type[Message]) -> Message:
-    return cls(proto=value)
+    def __repr__(self) -> str:
+        fields = ", ".join(
+            f"{k}={repr(getattr(self, k))}"
+            for k in dir(self.__class__)
+            if not k.startswith("_") and not callable(getattr(self.__class__, k))
+        )
+        return f"{self.__class__.__name__}({fields})"
 
 
-def set_basemsg(value: Message) -> Any:
-    return value.unwrap()
+class ListProxy(MutableSequence[Any]):
+    def __init__(
+        self,
+        container: List[Any],
+        get_v: Callable[[Any], Any],
+        set_v: Callable[[Any], Any],
+    ) -> None:
+        self._container = container
+        self._get_v = get_v
+        self._set_v = set_v
+
+    def __getitem__(self, i: Any) -> Any:
+        return self._get_v(self._container[i])
+
+    def __setitem__(self, i: Any, value: Any) -> None:
+        self._container[i] = self._set_v(value)
+
+    def __delitem__(self, index: Union[int, slice]) -> None:
+        del self._container[index]
+
+    def __iter__(self) -> Generator[Any, None, None]:
+        return (self._get_v(v) for v in self._container)
+
+    def __len__(self) -> int:
+        return len(self._container)
+
+    def __contains__(self, item: Any) -> bool:
+        return any(self._get_v(v) == item for v in self._container)
+
+    def append(self, value: Any) -> None:
+        self._container.append(self._set_v(value))
+
+    def extend(self, values: Any) -> None:
+        self._container.extend(self._set_v(v) for v in values)
+
+    def clear(self) -> None:
+        del self._container[:]
+
+    def insert(self, index: Any, value: Any) -> None:
+        self._container.insert(index, self._set_v(value))
+
+    def remove(self, value: Any) -> None:
+        del self[self.index(value)]
+
+    def pop(self, index: int = -1) -> Any:
+        return self._get_v(self._container.pop(index))
+
+    def index(self, value: Any, start: int = 0, stop: int = 9223372036854775807) -> int:
+        for i in range(start, min(stop, len(self))):
+            if self[i] == value:
+                return i
+        raise ValueError(f"{value!r} is not in list")
+
+    def reverse(self) -> None:
+        self._container.reverse()
+
+    def sort(self) -> None:
+        self._container.sort()
+
+    def copy(self) -> List[Any]:
+        return list(self)
+
+    def __eq__(self, other: Any) -> bool:
+        return list(self) == list(other)
+
+    def __repr__(self) -> str:
+        return repr(list(self))
 
 
-def get_enum_list(value: list[Any], enum_type: type[Enum]) -> list[Enum]:
-    return [enum_type(v) for v in value]
+def EnumListProxy(container: List[Any], enum_type: type[Enum]) -> ListProxy:
+    return ListProxy(container, enum_type, lambda v: v.value)
 
 
-def get_basemsg_list(value: list[Any], cls: type[Message]) -> list[Message]:
-    return [cls(proto=v) for v in value]
+def MessageListProxy(container: List[Any], base_type: type[Enum]) -> ListProxy:
+    return ListProxy(container, base_type, lambda v: v.unwrap())
 
 
-def get_enum_dict(value: dict[Any, Any], enum_type: type[Enum]) -> dict[Any, Enum]:
-    return {k: enum_type(v) for k, v in value.items()}
+def ValueListProxy(container: List[Any]) -> ListProxy:
+    return ListProxy(container, lambda v: v, lambda v: v)
 
 
-def set_enum_dict(value: dict[Any, Enum]) -> dict[Any, Any]:
-    return {k: v.value for k, v in value.items()}
+DEFAULT_VALUE = object()
 
 
-def get_basemsg_dict(value: dict[Any, Any], cls: type[Message]) -> dict[Any, Message]:
-    return {k: cls(proto=v) for k, v in value.items()}
+class DictProxy(MutableMapping[Any, Any]):
+    def __init__(
+        self,
+        container: Dict[Any, Any],
+        get_v: Callable[[Any], Any],
+        set_v: Callable[[Any], Any],
+    ):
+        self._container = container
+        self._get_v = get_v
+        self._set_v = set_v
+
+    def __getitem__(self, k: Any) -> Any:
+        value = self._container.get(k, DEFAULT_VALUE)
+        if value is DEFAULT_VALUE:
+            return None
+        return self._get_v(value)
+
+    def get(self, k: Any, default: Any = None) -> Any:
+        value = self._container.get(k, DEFAULT_VALUE)
+        if value is DEFAULT_VALUE:
+            return default
+        return self._get_v(value)
+
+    def set(self, k: Any, v: Any) -> None:
+        if v is not None:
+            self._container[k] = self._set_v(v)
+
+    def __setitem__(self, k: Any, v: Any) -> None:
+        self._container[k] = self._set_v(v)
+
+    def __contains__(self, k: Any) -> bool:
+        return k in self._container
+
+    def __delitem__(self, k: Any) -> None:
+        del self._container[k]
+
+    def __iter__(self) -> Iterator[Any]:
+        return iter(self._container)
+
+    def keys(self) -> KeysView[Any]:
+        return list(self._container.keys())
+
+    def values(self) -> ValuesView[Any]:
+        return [self._get_v(v) for v in self._container.values()]
+
+    def items(self) -> ItemsView[Any, Any]:
+        return [(k, self._get_v(v)) for k, v in self._container.items()]
+
+    def update(self, d: Dict[Any, Any]) -> None:
+        for k, v in d.items():
+            self._container[k] = self._set_v(v)
+
+    def clear(self) -> None:
+        self._container.clear()
+
+    def __eq__(self, other: Any) -> bool:
+        return dict(self.items()) == dict(other)
+
+    def __len__(self) -> int:
+        return len(self._container)
+
+    def __repr__(self) -> str:
+        return repr(dict(self.items()))
 
 
-def set_basemsg_dict(value: dict[Any, Message]) -> dict[Any, Any]:
-    return {k: v.unwrap() for k, v in value.items()}
+def EnumDictProxy(container: Dict[Any, Any], enum_type: type[Enum]) -> DictProxy:
+    return DictProxy(container, enum_type, lambda v: v.value)
+
+
+def MessageDictProxy(container: Dict[Any, Any], base_type: type[Enum]) -> DictProxy:
+    return DictProxy(container, base_type, lambda v: v.unwrap())
+
+
+def ValueDictProxy(container: Dict[Any, Any]) -> DictProxy:
+    return DictProxy(container, lambda v: v, lambda v: v)
 
 
 def make_getter(field: FuncArg) -> Callable[[Any], Any]:
@@ -74,22 +223,26 @@ def make_getter(field: FuncArg) -> Callable[[Any], Any]:
     if origin is list:
         bt = args[0]
         if issubclass(bt, Enum):
-            return lambda self: get_enum_list(getattr(self._proto, name), bt)
+            return lambda self: EnumListProxy(getattr(self._proto, name), bt)
         elif issubclass(bt, Message):
-            return lambda self: get_basemsg_list(getattr(self._proto, name), bt)
+            return lambda self: MessageListProxy(getattr(self._proto, name), bt)
+        else:
+            return lambda self: ValueListProxy(getattr(self._proto, name))
 
     elif origin is dict:
         bt = args[1]
         if issubclass(bt, Enum):
-            return lambda self: get_enum_dict(getattr(self._proto, name), bt)
+            return lambda self: EnumDictProxy(getattr(self._proto, name), bt)
         elif issubclass(bt, Message):
-            return lambda self: get_basemsg_dict(getattr(self._proto, name), bt)
+            return lambda self: MessageDictProxy(getattr(self._proto, name), bt)
+        else:
+            return lambda self: ValueDictProxy(getattr(self._proto, name))
 
     elif origin is None:
         if issubclass(bt, Enum):
-            return lambda self: get_enum(getattr(self._proto, name), bt)
+            return lambda self: bt(getattr(self._proto, name))
         elif issubclass(bt, Message):
-            return lambda self: get_basemsg(getattr(self._proto, name), bt)
+            return lambda self: bt(getattr(self._proto, name))
 
     return lambda self: getattr(self._proto, name)
 
@@ -108,9 +261,9 @@ def make_setter(field: FuncArg) -> Callable[[Any, Any], None]:
             target[:] = [set_v(v) for v in value]
 
         if issubclass(bt, Enum):
-            return partial(set_list, set_v=set_enum)
+            return partial(set_list, set_v=lambda x: x.value)
         elif issubclass(bt, Message):
-            return partial(set_list, set_v=set_basemsg)
+            return partial(set_list, set_v=lambda x: x.unwrap())
         else:
             return partial(set_list, set_v=lambda x: x)
 
@@ -126,17 +279,17 @@ def make_setter(field: FuncArg) -> Callable[[Any, Any], None]:
                 target[k] = set_v(v)
 
         if issubclass(bt, Enum):
-            return partial(set_dict, set_v=set_enum)
+            return partial(set_dict, set_v=lambda x: x.value)
         elif issubclass(bt, Message):
-            return partial(set_dict, set_v=set_basemsg)
+            return partial(set_dict, set_v=lambda x: x.unwrap())
         else:
             return partial(set_dict, set_v=lambda x: x)
 
     elif origin is None:
         if issubclass(bt, Enum):
-            return lambda self, value: setattr(self._proto, name, set_enum(value))
+            return lambda self, value: setattr(self._proto, name, value.value)
         elif issubclass(bt, Message):
-            return lambda self, value: setattr(self._proto, name, set_basemsg(value))
+            return lambda self, value: setattr(self._proto, name, value.unwrap())
 
     return lambda self, value: setattr(self._proto, name, value)
 

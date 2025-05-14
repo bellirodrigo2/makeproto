@@ -1,8 +1,9 @@
 from pathlib import Path
+from typing import Mapping, Sequence
+
+import pytest
 
 from makeproto.proxy import Message, bind_proxy, import_py_files_from_folder
-
-# from tests.conftest import ID, Code, Enum2, Product, ProductArea, Requisition, User
 
 
 class ProxyID(Message): ...
@@ -40,7 +41,7 @@ def test_convert(
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap()
     assert proto_id.id == n
-    proxy_id2 = ProxyID(proto=proto_id)
+    proxy_id2 = ProxyID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
 
     n = 13
@@ -48,7 +49,7 @@ def test_convert(
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap()
     assert proto_id.id == n
-    proxy_id2 = ProxyID(proto=proto_id)
+    proxy_id2 = ProxyID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
 
     n = 12
@@ -57,7 +58,7 @@ def test_convert(
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap()
     assert proto_id.id == n
-    proxy_id2 = ProxyID(proto=proto_id)
+    proxy_id2 = ProxyID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
 
     n = 11
@@ -66,7 +67,7 @@ def test_convert(
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap()
     assert proto_id.id == n
-    proxy_id2 = ProxyID(proto=proto_id)
+    proxy_id2 = ProxyID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
 
     # Enum Tests
@@ -88,26 +89,177 @@ def test_convert(
     assert proxy_code.le == le
     assert proxy_code.me == me
 
-    # proto_id = proxy_id.unwrap()
-    # assert proto_id.id == n
-    # proxy_id2 = ProxyID(proto=proto_id)
-    # assert proxy_id2.id == n
+    proto_code = proxy_code.unwrap()
+    assert proto_code.code == code_num
+    assert proto_code.pa == obj_prodarea.value
+    assert proto_code.s == s
+    assert proto_code.le == [l.value for l in le]
+    assert proto_code.me == {k: v.value for k, v in me.items()}
 
+    proxy_code2 = ProxyCode(_proto_proxy=proto_code)
+    assert proxy_code2.code == code_num
+    assert proxy_code2.pa == obj_prodarea
+    assert proxy_code2.s == s
+    assert proxy_code2.le == le
+    assert proxy_code2.me == me
 
-#     proto_code = converter.to_proto(obj_code)
-#     assert proto_code.code == code_num
-#     assert proto_code.pa == obj_prodarea.value
-#     for item in proto_code.s:  # order is not garanteed
-#         assert item in s
-#     assert proto_code.le == [l.value for l in le]
-#     assert proto_code.me == {k: v.value for k, v in me.items()}
+    assert proxy_code == proxy_code2
 
-#     cls_code = converter.from_proto(proto_code, code)
-#     assert cls_code == obj_code
-#     assert cls_code.pa == obj_code.pa
-#     assert cls_code.s == obj_code.s
-#     assert cls_code.le == obj_code.le
-#     assert cls_code.me == obj_code.me
+    # enum
+    proxy_code.pa = prodarea.Area2
+    assert proxy_code.pa == prodarea.Area2
+    assert proto_code.pa == prodarea.Area2.value
+    assert proxy_code2.pa == prodarea.Area2
+
+    # list
+
+    proxy_code.s.append("hello")
+    assert len(proxy_code.s) == 3
+    assert len(proto_code.s) == 3
+    assert len(proxy_code2.s) == 3
+    for s in proxy_code2.s:
+        assert isinstance(s, str)
+    proto_code.s.append("world")
+    assert len(proxy_code.s) == 4
+    assert len(proto_code.s) == 4
+    assert len(proxy_code2.s) == 4
+    assert "world" in proxy_code2.s
+
+    proxy_code.s = ["new"]
+    assert proxy_code.s == ["new"]
+    assert proto_code.s == ["new"]
+    assert proxy_code2.s == ["new"]
+
+    proxy_code.s[0] = "modified"
+    assert proxy_code.s[0] == "modified"
+    assert proto_code.s[0] == "modified"
+
+    proxy_code.s.extend(["more", "values"])
+    assert proxy_code.s[-2:] == ["more", "values"]
+
+    proxy_code.s.insert(1, "middle")
+    assert proxy_code.s[1] == "middle"
+
+    proxy_code.s.remove("middle")
+    assert "middle" not in proxy_code.s
+
+    item = proxy_code.s.pop()
+    assert item == "values"
+
+    proxy_code.s.clear()
+    assert proxy_code.s == []
+    assert proto_code.s == []
+    assert proxy_code2.s == []
+
+    proxy_code.s = ["a", "b", "c"]
+    proxy_code.s.reverse()
+    assert proxy_code.s == ["c", "b", "a"]
+
+    copy_list2 = proxy_code.s.copy()
+    assert copy_list2 == ["c", "b", "a"]
+    copy_list2.pop()
+    assert len(copy_list2) == 2
+
+    proxy_code.s = ["b", "c", "a"]
+    proxy_code.s.sort()
+    assert proxy_code.s == ["a", "b", "c"]
+
+    copy_list = list(proxy_code.s)
+    assert copy_list == ["a", "b", "c"]
+    copy_list.pop()
+
+    assert len(proxy_code.s) == 3
+
+    proxy_code.s[:2] = ["x", "y"]
+    assert proxy_code.s[:2] == ["x", "y"]
+
+    proxy_code.s = []
+    assert proxy_code.s == []
+    assert proto_code.s == []
+    assert proxy_code2.s == []
+
+    assert isinstance(proxy_code.s, Sequence)
+
+    # unwrap
+    proto1 = proxy_code.unwrap()
+    proto2 = proxy_code2.unwrap()
+    assert proto1 is proto2
+    # dict
+
+    assert proto_code.me["foo"] == enum2.e1.value
+
+    assert "foo" in proxy_code.me
+    del proxy_code.me["foo"]
+    assert "foo" not in proxy_code.me
+
+    assert proxy_code.me == {}
+    assert proto_code.me == {}
+
+    proxy_code.me["abc"] = enum2.e2
+    assert proxy_code.me["abc"] == enum2.e2
+    assert proto_code.me["abc"] == enum2.e2.value
+
+    looped = False
+    for k, v in proxy_code.me.items():
+        looped = True
+        assert isinstance(k, str)
+        assert isinstance(v, enum2)
+    assert looped
+
+    proxy_code.me["123"] = enum2.e1
+    assert proxy_code.me["123"] == enum2.e1
+    assert proto_code.me["123"] == enum2.e1.value
+
+    dictkeys = proxy_code.me.keys()
+    assert dictkeys == ["abc", "123"]
+
+    dictvalues = proxy_code.me.values()
+    assert dictvalues == [enum2.e2, enum2.e1]
+
+    dictitems = proxy_code.me.items()
+    assert dictitems == [("abc", enum2.e2), ("123", enum2.e1)]
+
+    assert proxy_code.me.get("abc") == enum2.e2
+    assert proxy_code.me.get("nonexistent_key") is None
+
+    assert proxy_code.me.pop("abc") == enum2.e2
+    assert "abc" not in proxy_code.me
+    assert proxy_code.me.get("abc") is None
+
+    proxy_code.me.clear()
+    assert proxy_code.me == {}
+    assert proto_code.me == {}
+
+    proxy_code.me.update({"new_key": enum2.e1})
+    assert "new_key" in proxy_code.me
+    assert proxy_code.me["new_key"] == enum2.e1
+
+    default_value = enum2.e2
+    assert proxy_code.me.setdefault("new_key", default_value) == enum2.e1
+    assert proxy_code.me.get("new_key") == enum2.e1
+
+    assert proxy_code.me.get("no_existant", None) is None
+    assert proxy_code.me.get("no_existant", 45) == 45
+
+    assert len(proxy_code.me) == 1
+    proxy_code.me.set("new_key2", enum2.e1)
+    assert len(proxy_code.me) == 2
+
+    assert isinstance(proxy_code.me, Mapping)
+
+    # assign wrong types
+    with pytest.raises(TypeError):
+        ProxyCode(code="not an int")
+
+    with pytest.raises(AttributeError):
+        proxy_code.pa = "not an enum"
+
+    # AttributeError
+    # proxy_code = ProxyCode(
+    # code=code_num, pa=obj_prodarea, s=s, le=le, me={"foo": "bar"}
+    # )
+    # proxy_code.me["hello"] = "world"
+
 
 #     # PRoduct TEst
 

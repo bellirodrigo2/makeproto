@@ -94,15 +94,23 @@ def check_field_spec(
     return exceptions
 
 
-def get_headers(
+def get_module(
     cls: type[BaseMessage],
-) -> Tuple[Optional[str], Optional[str], str, ProtoOption, List[Any]]:
-
+) -> Tuple[Optional[str], Optional[str]]:
     protofile_method = getattr(cls, "protofile", None)
     protofile: Optional[str] = None if protofile_method is None else protofile_method()
 
     package_method = getattr(cls, "package", None)
     package: Optional[str] = None if package_method is None else package_method()
+
+    return protofile, package
+
+
+def get_headers(
+    cls: type[BaseMessage],
+) -> Tuple[Optional[str], Optional[str], str, ProtoOption, List[Any]]:
+
+    protofile, package = get_module(cls)
 
     comment_method = getattr(cls, "comment", None)
     comment: str = "" if comment_method is None else comment_method()
@@ -253,6 +261,43 @@ def make_enumblock(
     return enumBlock
 
 
+def cls_map(
+    tgt: type[BaseMessage],
+    default_protofile: str,
+    default_package: str,
+    visited: Optional[Set[Block]] = None,
+) -> Set[BaseMessage]:
+
+    if not isinstance(tgt, type):  # type: ignore
+        raise TypeError(f'tgt argumento should be a type. found "{tgt}"')
+
+    if visited is None:
+        visited: Set[BaseMessage] = set()
+
+    # Evita regenerar blocos que já foram criados
+    if any(b.__name__ == tgt.__name__ for b in visited):
+        return visited
+
+    if issubclass(tgt, Enum) or issubclass(tgt, BaseMessage):
+        visited.add(tgt)
+
+        args = map_class_fields(tgt, False)
+
+        for arg in args:
+            bt = arg.basetype
+            if arg.istype(BaseMessage):
+                protofile, package = get_module(bt)
+                msgs = cls_map(
+                    arg.basetype,
+                    protofile or default_protofile,
+                    package or default_package,
+                    visited,
+                )
+                visited.update(msgs)
+
+    return visited
+
+
 def cls_to_blocks(
     tgt: type[BaseMessage],
     default_protofile: str,
@@ -281,9 +326,14 @@ def cls_to_blocks(
         args = map_class_fields(tgt, False)
 
         for arg in args:
+            bt = arg.basetype
             if arg.istype(BaseMessage):
+                protofile, package = get_module(bt)
                 msgs = cls_to_blocks(
-                    arg.basetype, default_protofile, default_package, visited
+                    arg.basetype,
+                    protofile or default_protofile,
+                    package or default_package,
+                    visited,
                 )
                 visited.update(msgs)
 
