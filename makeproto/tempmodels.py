@@ -73,66 +73,73 @@ class Method(HasMeta):
         )
 
 
+def validate_service(block: "Block") -> None:
+    for f in block.fields:
+        if not isinstance(f, Method):
+            raise TypeError(
+                f'Service Block should have Methods only. Found "{type(f)}" for field "{getattr(f, "name", "?")}" in block "{block.name}"'
+            )
+
+
+def validate_enum(block: "Block") -> None:
+    for f in block.fields:
+        if not isinstance(f, Field):
+            raise TypeError(
+                f"Enum Block should have Field only. Found {type(f)} in block '{block.name}'"
+            )
+        if f.ftype:
+            raise TypeError(
+                f'Enum Field should have no type. Found "{f.ftype}" on field "{f.name}" in block "{block.name}"'
+            )
+
+
+def validate_message(block: "Block") -> None:
+    for f in block.fields:
+        if isinstance(f, Method):
+            raise TypeError(
+                f"Message Block '{block.name}' should not have Methods. Found method: {f.method_name}"
+            )
+        if isinstance(f, Field) and not f.ftype:
+            raise TypeError(
+                f"Message Block '{block.name}' found no ftype for field: {f.name}"
+            )
+
+
+def validate_oneof(block: "Block") -> None:
+    for f in block.fields:
+        if not isinstance(f, Field):
+            raise TypeError(
+                f"Oneof Block should have Field only. Found {type(f)} in block '{block.name}'"
+            )
+        if not f.ftype:
+            raise TypeError(
+                f"Oneof Block should have a type. Found no type for field: {f.name}"
+            )
+
+
+validate_block = {
+    "service": validate_service,
+    "enum": validate_enum,
+    "message": validate_message,
+    "oneof": validate_oneof,
+}
+
+
 @dataclass
 class Block(HasMeta, HasProtoModule):
     name: str
     block_type: Literal["message", "enum", "oneof", "service"]
-    fields: Set[Union[Field, Method, "Block"]]
-    reserved: List[str]
+    fields: List[Union[Field, Method, "Block"]]
+    reserved: str
 
     def __post_init__(self) -> None:
-        validate = {
-            "service": self._validate_service,
-            "enum": self._validate_enum,
-            "message": self._validate_message,
-            "oneof": self._validate_oneof,
-        }.get(self.block_type)
+        validate_block[self.block_type](self)
 
-        if not validate:
-            raise ValueError(f"Invalid block_type: {self.block_type}")
-
-        validate()
-        self.fields = frozenset(self.fields)
-
-    def _validate_service(self) -> None:
-        for f in self.fields:
-            if not isinstance(f, Method):
-                raise TypeError(
-                    f'Service Block should have Methods only. Found "{type(f)}" for field "{getattr(f, "name", "?")}" in block "{self.name}"'
-                )
-
-    def _validate_enum(self) -> None:
-        for f in self.fields:
-            if not isinstance(f, Field):
-                raise TypeError(
-                    f"Enum Block should have Field only. Found {type(f)} in block '{self.name}'"
-                )
-            if f.ftype:
-                raise TypeError(
-                    f'Enum Field should have no type. Found "{f.ftype}" on field "{f.name}" in block "{self.name}"'
-                )
-
-    def _validate_message(self) -> None:
-        for f in self.fields:
-            if isinstance(f, Method):
-                raise TypeError(
-                    f"Message Block '{self.name}' should not have Methods. Found method: {f.method_name}"
-                )
-            if isinstance(f, Field) and not f.ftype:
-                raise TypeError(
-                    f"Message Block '{self.name}' found no ftype for field: {f.name}"
-                )
-
-    def _validate_oneof(self) -> None:
-        for f in self.fields:
-            if not isinstance(f, Field):
-                raise TypeError(
-                    f"Oneof Block should have Field only. Found {type(f)} in block '{self.name}'"
-                )
-            if not f.ftype:
-                raise TypeError(
-                    f"Oneof Block should have a type. Found no type for field: {f.name}"
-                )
+    @property
+    def number(self) -> int:
+        if self.block_type == "oneof":
+            return min([f.number for f in self.fields])
+        return 0
 
     def __len__(self) -> int:
         return len(self.fields)
@@ -142,7 +149,13 @@ class Block(HasMeta, HasProtoModule):
 
     def __hash__(self) -> int:
         return hash(
-            (self.protofile, self.package, self.name, self.block_type, self.fields)
+            (
+                self.protofile,
+                self.package,
+                self.name,
+                self.block_type,
+                frozenset(self.fields),
+            )
         )
 
     def __eq__(self, other: Any) -> bool:
@@ -159,7 +172,7 @@ class Block(HasMeta, HasProtoModule):
 
 @dataclass
 class ProtoBlocks(HasMeta, HasProtoModule):
-    blocks: Set[Block] = field(default_factory=set)
+    blocks: List[Block] = field(default_factory=list)
 
     def __iter__(
         self,

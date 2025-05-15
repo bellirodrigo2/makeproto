@@ -8,7 +8,22 @@ class Indexer:
     ) -> None:
         self._start = start
         self._counter = start
-        self._reserveds = list(idxs or [])
+        self._reserveds: List[Union[int, range]] = []
+        for idx in idxs or []:
+            self.reserve(idx)
+
+    def __contains__(self, item: int) -> bool:
+        if not isinstance(item, int):  # type: ignore
+            return False
+        return item in self._flatten_reserveds()
+
+    @property
+    def current(self) -> int:
+        return self._counter
+
+    @property
+    def reserved(self) -> List[int]:
+        return list(self._flatten_reserveds())
 
     @singledispatchmethod
     def reserve(self, idx: Union[int, range]) -> NoReturn:
@@ -16,15 +31,16 @@ class Indexer:
 
     @reserve.register
     def _(self, idx: int) -> None:
-        if idx > self._start:
+        if idx >= self._start:
             self._reserveds.append(idx)
 
     @reserve.register
     def _(self, idx: range) -> None:
-        if idx.stop > self._start:
-            filtered = range(max(self._start + 1, idx.start), idx.stop)
-            if filtered:
-                self._reserveds.append(filtered)
+        if idx.stop >= self._start:
+            start = max(self._start, idx.start)
+            stop = idx.stop + 1  # Tornar o range inclusivo
+            if stop > start:
+                self._reserveds.append(range(start, stop))
 
     @property
     def next(self) -> int:
@@ -44,7 +60,6 @@ class Indexer:
         }
 
     def _merge_ranges(self, items: List[Union[int, range]]) -> List[Union[int, range]]:
-        # Flatten into ints
         ints = sorted(
             {
                 i
@@ -56,7 +71,6 @@ class Indexer:
         if not ints:
             return []
 
-        # Merge into ranges
         result: List[Union[int, range]] = []
         start = prev = ints[0]
         for i in ints[1:]:
@@ -68,7 +82,6 @@ class Indexer:
                 else:
                     result.append(range(start, prev + 1))
                 start = prev = i
-        # Add last
         if start == prev:
             result.append(start)
         else:
@@ -87,7 +100,6 @@ class Indexer:
             if isinstance(item, int):
                 parts.append(str(item))
             elif item.stop - item.start == 2:
-                # small range of 2 values, e.g., range(1, 3) => 1,2
                 parts.append(f"{item.start}")
                 parts.append(f"{item.start + 1}")
             else:

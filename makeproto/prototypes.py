@@ -53,7 +53,7 @@ class BaseMessage(BaseProto):
         return ProtoOption()
 
     @classmethod
-    def reserved(cls) -> List[str]:
+    def reserved(cls) -> List[Union[int, range]]:
         return []
 
 
@@ -81,8 +81,8 @@ class ProtoHeader:
     def __init__(
         self,
         comment: str = "",
-        options: Optional[dict] = None,
-        reserved: Optional[list] = None,
+        options: Optional[Dict[str, Union[str, bool]]] = None,
+        reserved: Optional[List[Union[int, range]]] = None,
     ):
         self.comment = comment
         self.options = ProtoOption(**(options or {}))

@@ -1,51 +1,51 @@
 syntax= "proto3";
 enum ProductArea {
-  Area2 = 1;
   Area1 = 0;
+  Area2 = 1;
   Area3 = 2;
 }
 enum Enum2 {
-  e2 = 1;
   e1 = 0;
+  e2 = 1;
 }
 message ID {
-  int64 id = 0;
+  int64 id = 1;
 }
 message Code {
-  map<string, Enum2> me = 0;
-  ProductArea pa = 0;
-  repeated string s = 0;
-  int64 code = 0;
-  repeated ProductArea le = 0;
+  int64 code = 1;
+  ProductArea pa = 2;
+  repeated string s = 3;
+  repeated ProductArea le = 4;
+  map<string, Enum2> me = 5;
 }
 message User {
-  ProductArea pa = 0;
-  ID id = 0;
-  int64 age = 0;
-  string name = 0;
+  ID id = 1;
+  string name = 2;
+  string lastname = 3;
   // email comment
-string email = 0 [json_name = "email_field"];
-  repeated string tags = 0;
+string email = 4 [json_name = "email_field"];
+  int64 age = 5;
+  repeated string tags = 6;
+  Code code2 = 7;
+  ProductArea pa = 8;
   oneof oo1 {
-  int64 o3 = 0;
-  bool o1 = 0;
-  string o4 = 0;
-  string o2 = 0;
+  bool o1 = 9;
+  string o2 = 10;
+  int64 o3 = 11;
+  string o4 = 12;
 }
-  string lastname = 0;
-  Code code2 = 0;
 }
 message Product {
-  ProductArea area = 0;
-  Enum2 enum2 = 0;
-  string name = 0;
-  map<string, float> unit_price = 0;
-  Code code = 0;
+  string name = 1;
+  map<string, float> unit_price = 2;
+  Code code = 3;
+  ProductArea area = 4;
+  Enum2 enum2 = 5;
 }
 message Requisition {
-  Product product = 0;
-  User user = 0;
-  Enum2 enum2 = 0;
-  int32 quantity = 0;
-  Code code = 0;
+  User user = 1;
+  Code code = 2;
+  Product product = 3;
+  int32 quantity = 4;
+  Enum2 enum2 = 5;
 }

@@ -1,3 +1,4 @@
+from functools import singledispatch
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union, get_args, get_origin
 
@@ -51,40 +52,42 @@ def get_type_str(bt: type[Any]) -> Optional[str]:
     return get_type(bt)
 
 
-def render_obj(temp: Union[Field, Method]) -> str:
+@singledispatch
+def render_obj(obj: Any) -> str:
+    raise TypeError(f'Cannot render object of type "{type(obj).__name__}"')
 
-    if isinstance(temp, Field):
-        temp_dict: Dict[str, Any] = temp.to_dict()
-        if temp_dict["ftype"] is not None:
-            str_type = get_type_str(temp_dict["ftype"])
-            temp_dict["ftype"] = str_type
-        return field_template.render(temp_dict)
 
-    elif isinstance(temp, Method):  # type: ignore
-        temp_dict: Dict[str, Any] = temp.to_dict()
-        temp_dict["request_type"] = temp_dict["request_type"].__name__
-        temp_dict["response_type"] = temp_dict["response_type"].__name__
+@render_obj.register
+def _(temp: Field) -> str:
+    temp_dict: Dict[str, Any] = temp.to_dict()
+    if temp_dict["ftype"] is not None:
+        temp_dict["ftype"] = get_type_str(temp_dict["ftype"])
+    return field_template.render(temp_dict)
 
-        return method_template.render(temp_dict)
 
-    elif isinstance(temp, Block):  # type: ignore
-        rendered_items = [render_obj(f) for f in temp.fields]
+@render_obj.register
+def _(temp: Method) -> str:
+    temp_dict: Dict[str, Any] = temp.to_dict()
+    temp_dict["request_type"] = temp_dict["request_type"].__name__
+    temp_dict["response_type"] = temp_dict["response_type"].__name__
+    return method_template.render(temp_dict)
 
-        return block_template.render(
-            comment=temp.comment,
-            template={"block": temp.block_type, "name": temp.name},
-            fields=rendered_items,
-            options=temp.options or {},
-        )
-    else:
-        raise TypeError(f'Cant Resolve template for obj of class "{type(temp)}"')
+
+@render_obj.register
+def _(temp: Block) -> str:
+    rendered_items = [render_obj(f) for f in temp.fields]
+    return block_template.render(
+        comment=temp.comment,
+        template={"block": temp.block_type, "name": temp.name},
+        fields=rendered_items,
+        options=temp.options or {},
+    )
 
 
 def render_block(block: Block) -> str:
 
     if not block.fields:
         raise ValueError(f"Rendering Block '{block.name}' is empty.")
-
     rendered_items = [render_obj(item) for item in block.fields]  # type: ignore
 
     return block_template.render(

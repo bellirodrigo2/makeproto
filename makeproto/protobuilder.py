@@ -21,7 +21,7 @@ class ProtoBlocksBuilder:
                         with differing content.\nExisting: {existing}\nNew: {new_block}"""
                     )
                 return  # Already exists and is identical — no-op
-        self.pf.blocks.add(new_block)
+        self.pf.blocks.append(new_block)
 
 
 @dataclass
