@@ -7,7 +7,6 @@ from typing_extensions import Annotated
 
 from makeproto.exceptions import ProtoBlockError
 from makeproto.makeblock import make_msgblock
-from makeproto.models import Block
 from makeproto.prototypes import (
     BaseMessage,
     Bool,
@@ -20,6 +19,7 @@ from makeproto.prototypes import (
     String,
     UInt32,
 )
+from makeproto.tempmodels import Block
 
 
 class Proto1(BaseMessage):

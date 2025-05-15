@@ -2,9 +2,9 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
 from makeproto.makeblock import cls_to_blocks
-from makeproto.models import Block, ProtoBlocks
 from makeproto.prototypes import ProtoOption
 from makeproto.templates import render_protofile
+from makeproto.tempmodels import Block, ProtoBlocks
 
 
 @dataclass

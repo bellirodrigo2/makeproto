@@ -5,8 +5,8 @@ import pytest
 
 from makeproto.exceptions import ProtoBlockError
 from makeproto.makeblock import make_method
-from makeproto.models import Method
 from makeproto.prototypes import BaseMessage
+from makeproto.tempmodels import Method
 
 
 @dataclass

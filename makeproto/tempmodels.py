@@ -1,8 +1,6 @@
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, Generator, Iterator, List, Literal, Optional, Set, Union
 
-from makeproto.prototypes import ProtoOption
-
 
 @dataclass
 class HasProtoModule:
@@ -10,13 +8,13 @@ class HasProtoModule:
     package: Optional[str]
 
     def __post_init__(self) -> None:
-        self.protofile = f'{self.protofile.rstrip(".proto")}.proto'
+        self.protofile = f'{self.protofile.removesuffix(".proto")}.proto'
 
 
 @dataclass
 class HasMeta:
     comment: str
-    options: ProtoOption
+    options: Dict[str, Union[str, bool]]
 
 
 @dataclass

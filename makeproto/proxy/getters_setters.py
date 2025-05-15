@@ -13,6 +13,8 @@ from makeproto.proxy.proxy import (
     ValueListProxy,
 )
 
+# ----------------- GETTERS -------------------------------------------------
+
 
 def list_getter_factory(bt: type[Any], name: str) -> Callable[[Any], Any]:
     if issubclass(bt, Enum):
@@ -58,6 +60,9 @@ def make_getter(field: FuncArg) -> Callable[[Any], Any]:
     elif origin is None:
         return single_getter_factory(bt, name)
     raise TypeError(f'Can´t resolve getter for field: "{name}"')
+
+
+# ----------------- SETTERS -------------------------------------------------
 
 
 def list_setter_factory(bt: type[Any], name: str) -> Callable[[Any, Any], Any]:
@@ -171,6 +176,9 @@ def make_setter(field: FuncArg) -> Callable[[Any, Any], Any]:
     elif origin is None:
         return single_setter_factory(bt, name)
     raise TypeError(f'Can´t resolve setter for field: "{name}"')
+
+
+# ----------------- KWARGS ------------------------------------------------
 
 
 def single_kwarg_factory(bt: type[Any]) -> Callable[[Any], Any]:

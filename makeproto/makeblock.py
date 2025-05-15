@@ -4,7 +4,6 @@ from typing import Any, List, Optional, Set, Tuple
 
 from makeproto.exceptions import ProtoBlockError
 from makeproto.mapclass import FuncArg, map_class_fields
-from makeproto.models import Block, Field, Method
 from makeproto.prototypes import (
     DEFAULT_PRIMITIVES,
     BaseMessage,
@@ -14,6 +13,7 @@ from makeproto.prototypes import (
     ProtoOption,
     allowed_map_key,
 )
+from makeproto.tempmodels import Block, Field, Method
 
 
 def check_type(bt: type[Any], arg_name: str) -> None | TypeError:

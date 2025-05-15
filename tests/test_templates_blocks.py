@@ -1,8 +1,8 @@
 import pytest
 
-from makeproto.models import Block, Field, Method
 from makeproto.prototypes import Int32, String
 from makeproto.templates import render_block, render_obj
+from makeproto.tempmodels import Block, Field, Method
 
 # -------- Fixtures para fields e methods --------
 

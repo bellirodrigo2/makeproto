@@ -39,7 +39,7 @@ def _bind_proxy(
 
     # bind protobuf class constructor
     proto_cls = _get_class(mapcls, modules)
-    setattr(tgtcls, "_proto_cls", proto_cls)
+    tgtcls._proto_cls = proto_cls
 
     fields = map_model_fields(mapcls)
     slot_names = tuple(f.name for f in fields)
@@ -61,11 +61,9 @@ def _bind_proxy(
             )
 
     # set build proto kwargs
-    setattr(
-        tgtcls,
-        "_build_proto_kwargs",
-        lambda kwargs: {k: proto_kwargs[k](v) for k, v in kwargs.items()},
-    )
+    tgtcls._build_proto_kwargs = lambda kwargs: {
+        k: proto_kwargs[k](v) for k, v in kwargs.items()
+    }
 
 
 def bind_proxy(

@@ -4,7 +4,6 @@ from typing import Any, Callable, Dict, Optional, Union, get_args, get_origin
 from jinja2 import Environment, FileSystemLoader
 from typing_extensions import Annotated
 
-from makeproto.models import Block, Field, Method, ProtoBlocks
 from makeproto.prototypes import (
     DEFAULT_PRIMITIVES,
     BaseProto,
@@ -12,6 +11,7 @@ from makeproto.prototypes import (
     ProtoOption,
     allowed_map_key,
 )
+from makeproto.tempmodels import Block, Field, Method, ProtoBlocks
 
 
 def get_type(bt: type[Any]) -> Optional[str]:

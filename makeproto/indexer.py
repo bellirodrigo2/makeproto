@@ -1,12 +1,14 @@
 from functools import singledispatchmethod
-from typing import List, NoReturn, Set, Union
+from typing import List, NoReturn, Optional, Set, Union
 
 
 class Indexer:
-    def __init__(self, start: int = 1, idxs: List[Union[int, range]] = []) -> None:
+    def __init__(
+        self, start: int = 1, idxs: Optional[List[Union[int, range]]] = None
+    ) -> None:
         self._start = start
         self._counter = start
-        self._reserveds = list(idxs)
+        self._reserveds = list(idxs or [])
 
     @singledispatchmethod
     def reserve(self, idx: Union[int, range]) -> NoReturn:

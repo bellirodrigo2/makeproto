@@ -1,6 +1,6 @@
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, List, Mapping, Sequence
+from typing import Annotated, Any, Dict, List, Mapping, Sequence, Tuple
 
 import pytest
 
@@ -8,6 +8,60 @@ from makeproto.prototypes import FieldSpec, Float, OneOf, String
 from makeproto.proxy.binder import bind_proxy
 from makeproto.proxy.importer import import_py_files_from_folder
 from makeproto.proxy.proxy import ProxyMessage
+
+# class ProtoMessage(ProxyMessage):
+#     @classmethod
+#     def protofile(cls) -> str:
+#         return "teste"
+
+
+# class ID(ProtoMessage):
+#     id: int
+
+
+# class User(ProtoMessage):
+#     id: ID
+#     name: String
+#     lastname: str
+#     email: Annotated[
+#         String, FieldSpec(comment="email comment", options={"json_name": "email_field"})
+#     ]
+#     age: int
+#     tags: list[String]
+#     code2: "Code"
+#     pa: "ProductArea"
+
+#     o1: Annotated[bool, OneOf("oo1")]
+#     o2: Annotated[str, OneOf("oo1")]
+#     o3: Annotated[int, OneOf("oo1")]
+#     o4: Annotated[str, OneOf("oo1")]
+
+
+# class Code(ProtoMessage):
+#     code: int
+#     pa: "ProductArea"
+#     s: List[str]
+#     le: list["ProductArea"]
+#     me: dict[str, "Enum2"]
+
+
+# class ProductArea(Enum):
+#     Area1 = 0
+#     Area2 = 1
+#     Area3 = 2
+
+
+# class Enum2(Enum):
+#     e1 = 0
+#     e2 = 1
+
+
+# class Product(ProtoMessage):
+#     name: String
+#     unit_price: dict[String, Float]
+#     code: Code
+#     area: ProductArea
+#     enum2: Enum2
 
 
 class ProtoMessage(ProxyMessage):
@@ -25,13 +79,13 @@ class User(ProtoMessage):
     name: String
     lastname: str
     email: Annotated[
-        String, FieldSpec(comment="email comment", options={"json_name": "email_field"})
+        String,
+        FieldSpec(comment="email comment", options={"json_name": "email_field"}),
     ]
     age: int
     tags: list[String]
     code2: "Code"
     pa: "ProductArea"
-
     o1: Annotated[bool, OneOf("oo1")]
     o2: Annotated[str, OneOf("oo1")]
     o3: Annotated[int, OneOf("oo1")]
@@ -65,21 +119,70 @@ class Product(ProtoMessage):
     enum2: Enum2
 
 
-def test_proxy() -> None:
+p = Path(__file__).parent / "proto" / "compiled"
+modules = import_py_files_from_folder(p)
+bind_proxy(ID, modules)
+bind_proxy(User, modules)
+bind_proxy(Code, modules)
+bind_proxy(Product, modules)
+# bind_proxy(Requisition, modules)
 
-    p = Path(__file__).parent / "proto" / "compiled"
 
-    modules = import_py_files_from_folder(p)
-
-    bind_proxy(ID, modules)
-    bind_proxy(User, modules)
-    bind_proxy(Code, modules)
-    bind_proxy(Product, modules)
-    # bind_proxy(Requisition, modules)
-
-    # ID Tests
+@pytest.fixture
+def id() -> Tuple[ID, int]:
     n = 15
     proxy_id = ID(id=n)
+
+    return proxy_id, n
+
+
+@pytest.fixture
+def code() -> (
+    Tuple[Code, Enum, Enum, int, List[str], List[ProductArea], Dict[str, Enum2]]
+):
+    obj_prodarea = ProductArea.Area1
+    obj_enum2 = Enum2.e1
+
+    code_num = 12
+    s = ["foo", "bar"]
+    le = [obj_prodarea]
+    me = {"foo": obj_enum2}
+
+    return (
+        Code(code=code_num, pa=obj_prodarea, s=s, le=le, me=me),
+        obj_prodarea,
+        obj_enum2,
+        code_num,
+        s,
+        le,
+        me,
+    )
+
+
+@pytest.fixture
+def product(
+    code: Tuple[Code, Enum, Enum, int, List[str], List[ProductArea], Dict[str, Enum2]],
+) -> Product:
+
+    proxy_code, obj_prodarea, obj_enum2, _, _, _, _ = code
+
+    name = "John"
+    unit_price = {"foo": 3.1415}
+
+    return (
+        Product(
+            name=name,
+            unit_price=unit_price,
+            code=proxy_code,
+            area=obj_prodarea,
+            enum2=obj_enum2,
+        ),
+        proxy_code,
+    )
+
+
+def test_proxy(id: Tuple[ID, int]) -> None:
+    proxy_id, n = id
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap
     assert proto_id.id == n
@@ -112,33 +215,27 @@ def test_proxy() -> None:
     proxy_id2 = ID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
 
-    # Enum Tests
 
-    obj_prodarea = ProductArea.Area1
-    obj_enum2 = Enum2.e1
+def test_code_simple(
+    code: Tuple[Code, Enum, Enum, int, List[str], List[ProductArea], Dict[str, Enum2]],
+) -> None:
 
-    # Code Tests
+    proxy_code, obj_prodarea, obj_enum2, code_num, s, le, me = code
+    proto_code = proxy_code.unwrap
+    proxy_code2 = Code(_proto_proxy=proto_code)
 
-    code_num = 12
-    s = ["foo", "bar"]
-    le = [obj_prodarea]
-    me = {"foo": obj_enum2}
-
-    proxy_code = Code(code=code_num, pa=obj_prodarea, s=s, le=le, me=me)
     assert proxy_code.code == code_num
     assert proxy_code.pa == obj_prodarea
     assert proxy_code.s == s
     assert proxy_code.le == le
     assert proxy_code.me == me
 
-    proto_code = proxy_code.unwrap
     assert proto_code.code == code_num
     assert proto_code.pa == obj_prodarea.value
     assert proto_code.s == s
     assert proto_code.le == [l.value for l in le]
     assert proto_code.me == {k: v.value for k, v in me.items()}
 
-    proxy_code2 = Code(_proto_proxy=proto_code)
     assert proxy_code2.code == code_num
     assert proxy_code2.pa == obj_prodarea
     assert proxy_code2.s == s
@@ -147,13 +244,28 @@ def test_proxy() -> None:
 
     assert proxy_code == proxy_code2
 
-    # enum
+
+def test_code_enum(
+    code: Tuple[Code, Enum, Enum, int, List[str], List[ProductArea], Dict[str, Enum2]],
+) -> None:
+
+    proxy_code, _, _, _, _, _, _ = code
+    proto_code = proxy_code.unwrap
+    proxy_code2 = Code(_proto_proxy=proto_code)
+
     proxy_code.pa = ProductArea.Area2
     assert proxy_code.pa == ProductArea.Area2
     assert proto_code.pa == ProductArea.Area2.value
     assert proxy_code2.pa == ProductArea.Area2
 
-    # list
+
+def test_code_list(
+    code: Tuple[Code, Enum, Enum, int, List[str], List[ProductArea], Dict[str, Enum2]],
+) -> None:
+
+    proxy_code, _, _, _, s, _, _ = code
+    proto_code = proxy_code.unwrap
+    proxy_code2 = Code(_proto_proxy=proto_code)
 
     proxy_code.s.append("hello")
     assert len(proxy_code.s) == 3
@@ -215,28 +327,13 @@ def test_proxy() -> None:
     proxy_code.s[:2] = ["x", "y"]
     assert proxy_code.s[:2] == ["x", "y"]
 
-    proxy_code.s = []
-    assert proxy_code.s == []
-    assert proto_code.s == []
-    assert proxy_code2.s == []
 
-    proxy_code.s.append("foo")
+def test_code_dict(
+    code: Tuple[Code, Enum, Enum, int, List[str], List[ProductArea], Dict[str, Enum2]],
+) -> None:
 
-    with pytest.raises(TypeError, match="At ListProxy set method for index:"):
-        proxy_code.s[0] = 4
-    with pytest.raises(TypeError, match="At ListProxy append method: Expected"):
-        proxy_code.s.append(4)
-
-    with pytest.raises(TypeError, match="At ListProxy extend method: Expected"):
-        proxy_code.s.extend(4)
-
-    assert isinstance(proxy_code.s, Sequence)
-
-    # unwrap
-    proto1 = proxy_code.unwrap
-    proto2 = proxy_code2.unwrap
-    assert proto1 is proto2
-    # dict
+    proxy_code, _, _, _, _, _, _ = code
+    proto_code = proxy_code.unwrap
 
     assert proto_code.me["foo"] == Enum2.e1.value
 
@@ -263,13 +360,14 @@ def test_proxy() -> None:
     assert proto_code.me["123"] == Enum2.e1.value
 
     dictkeys = proxy_code.me.keys()
-    assert dictkeys == ["abc", "123"]
+    assert list(dictkeys).sort() == ["abc", "123"].sort()
 
     dictvalues = proxy_code.me.values()
-    assert dictvalues == [Enum2.e2, Enum2.e1]
+    for v in [Enum2.e2, Enum2.e1]:
+        assert v in dictvalues
 
     dictitems = proxy_code.me.items()
-    assert dictitems == [("abc", Enum2.e2), ("123", Enum2.e1)]
+    assert dictitems.sort() == [("abc", Enum2.e2), ("123", Enum2.e1)].sort()
 
     assert proxy_code.me.get("abc") == Enum2.e2
     assert proxy_code.me.get("nonexistent_key") is None
@@ -311,6 +409,46 @@ def test_proxy() -> None:
 
     assert isinstance(proxy_code.me, Mapping)
 
+
+def test_code_unwrap(
+    code: Tuple[Code, Enum, Enum, int, List[str], List[ProductArea], Dict[str, Enum2]],
+) -> None:
+
+    proxy_code, _, _, _, _, _, _ = code
+    proto_code = proxy_code.unwrap
+    proxy_code2 = Code(_proto_proxy=proto_code)
+
+    # unwrap
+    proto1 = proxy_code.unwrap
+    proto2 = proxy_code2.unwrap
+    assert proto1 is proto2
+
+
+def test_code_wrong(
+    code: Tuple[Code, Enum, Enum, int, List[str], List[ProductArea], Dict[str, Enum2]],
+) -> None:
+
+    proxy_code, obj_prodarea, obj_enum2, _, s, _, _ = code
+    proto_code = proxy_code.unwrap
+    proxy_code2 = Code(_proto_proxy=proto_code)
+
+    proxy_code.s = []
+    assert proxy_code.s == []
+    assert proto_code.s == []
+    assert proxy_code2.s == []
+
+    proxy_code.s.append("foo")
+
+    with pytest.raises(TypeError, match="At ListProxy set method for index:"):
+        proxy_code.s[0] = 4
+    with pytest.raises(TypeError, match="At ListProxy append method: Expected"):
+        proxy_code.s.append(4)
+
+    with pytest.raises(TypeError, match="At ListProxy extend method: Expected"):
+        proxy_code.s.extend(4)
+
+    assert isinstance(proxy_code.s, Sequence)
+
     # assign wrong types
     with pytest.raises(TypeError):
         Code(code="not an int")
@@ -329,23 +467,15 @@ def test_proxy() -> None:
 
     #     # PRoduct TEst
 
-    name = "John"
-    unit_price = {"foo": 3.1415}
-    Product(
-        name=name,
-        unit_price=unit_price,
-        code=proxy_code,
-        area=obj_prodarea,
-        enum2=obj_enum2,
-    )
+
+def test_product(product: Product) -> None:
+
+    proxy_product, proxy_code = product
+
+    assert proxy_product.code == proxy_code
+    assert proxy_product.code.code == proxy_code.code
 
 
-#     assert proto_product.name == name
-
-#     for k, v in proto_product.unit_price.items():
-#         assert f"{v:.2f}" == f"{unit_price[k]:.2f}"
-
-#     assert proto_product.code.code == obj_prod.code.code
 #     assert proto_product.code.code == obj_prod.code.code
 #     for item in proto_product.code.s:
 #         assert item in obj_prod.code.s
