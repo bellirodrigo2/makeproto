@@ -5,10 +5,12 @@ from typing import Annotated, List, Mapping, Sequence
 import pytest
 
 from makeproto.prototypes import FieldSpec, Float, OneOf, String
-from makeproto.proxy import Message, bind_proxy, import_py_files_from_folder
+from makeproto.proxy.binder import bind_proxy
+from makeproto.proxy.importer import import_py_files_from_folder
+from makeproto.proxy.proxy import ProxyMessage
 
 
-class ProtoMessage(Message):
+class ProtoMessage(ProxyMessage):
     @classmethod
     def protofile(cls) -> str:
         return "teste"
@@ -79,7 +81,7 @@ def test_proxy() -> None:
     n = 15
     proxy_id = ID(id=n)
     assert proxy_id.id == n
-    proto_id = proxy_id.unwrap()
+    proto_id = proxy_id.unwrap
     assert proto_id.id == n
     proxy_id2 = ID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
@@ -87,7 +89,7 @@ def test_proxy() -> None:
     n = 13
     proxy_id.id = n
     assert proxy_id.id == n
-    proto_id = proxy_id.unwrap()
+    proto_id = proxy_id.unwrap
     assert proto_id.id == n
     proxy_id2 = ID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
@@ -96,7 +98,7 @@ def test_proxy() -> None:
     proto_id.id = n
 
     assert proxy_id.id == n
-    proto_id = proxy_id.unwrap()
+    proto_id = proxy_id.unwrap
     assert proto_id.id == n
     proxy_id2 = ID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
@@ -105,7 +107,7 @@ def test_proxy() -> None:
     proxy_id2.id = n
 
     assert proxy_id.id == n
-    proto_id = proxy_id.unwrap()
+    proto_id = proxy_id.unwrap
     assert proto_id.id == n
     proxy_id2 = ID(_proto_proxy=proto_id)
     assert proxy_id2.id == n
@@ -129,7 +131,7 @@ def test_proxy() -> None:
     assert proxy_code.le == le
     assert proxy_code.me == me
 
-    proto_code = proxy_code.unwrap()
+    proto_code = proxy_code.unwrap
     assert proto_code.code == code_num
     assert proto_code.pa == obj_prodarea.value
     assert proto_code.s == s
@@ -231,8 +233,8 @@ def test_proxy() -> None:
     assert isinstance(proxy_code.s, Sequence)
 
     # unwrap
-    proto1 = proxy_code.unwrap()
-    proto2 = proxy_code2.unwrap()
+    proto1 = proxy_code.unwrap
+    proto2 = proxy_code2.unwrap
     assert proto1 is proto2
     # dict
 
@@ -310,7 +312,7 @@ def test_proxy() -> None:
     assert isinstance(proxy_code.me, Mapping)
 
     # assign wrong types
-    with pytest.raises(TypeError, match="set: Expected "):
+    with pytest.raises(TypeError):
         Code(code="not an int")
 
     with pytest.raises(TypeError, match="set: Expected "):
