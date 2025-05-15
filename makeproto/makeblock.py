@@ -158,11 +158,20 @@ def handle_findex(
 
     return findex
 
+    # block_spec = FieldSpec(comment=comment, options=options)
+    # spec_exceptions = check_field_spec(block_spec, enum.__name__, False)
+    # exceptions.extend(spec_exceptions)
 
-def get_field_spec(arg: FuncArg, exceptions: List[Exception]) -> Optional[FieldSpec]:
-    spec = arg.getinstance(FieldSpec, True)
+
+def get_field_spec(
+    arg_or_field: Union[FuncArg, FieldSpec], exceptions: List[Exception], name: str
+) -> Optional[FieldSpec]:
+    if isinstance(arg_or_field, FuncArg):
+        spec = arg_or_field.getinstance(FieldSpec, True)
+    else:
+        spec = arg_or_field
     if spec is not None:
-        spec_exceptions = check_field_spec(spec, arg.name)
+        spec_exceptions = check_field_spec(spec, name)
         exceptions.extend(spec_exceptions)
     return spec
 
@@ -180,8 +189,7 @@ def make_msgblock(
     )
 
     block_spec = FieldSpec(comment=comment, options=options)
-    spec_exceptions = check_field_spec(block_spec, cls.__name__, False)
-    exceptions.extend(spec_exceptions)
+    get_field_spec(block_spec, exceptions, cls.__name__)
 
     running_index = Indexer(idxs=reserved)
     running_index.reserve(range(1900, 1999))  # reserved by google
@@ -196,7 +204,7 @@ def make_msgblock(
             exceptions.append(exception)
             continue
 
-        spec = get_field_spec(arg, exceptions)
+        spec = get_field_spec(arg, exceptions, arg.name)
         fcomment = spec.comment if spec is not None else ""
         foptions = spec.options if spec is not None else ProtoOption()
         findex = spec.index if spec is not None else 0
@@ -276,14 +284,9 @@ def make_enumblock(
     protofile, package, comment, options, reserved = get_headers(
         enum, default_protofile, default_package
     )
-    if protofile is None:
-        protofile = default_protofile
-    if package is None:
-        package = default_package
 
     block_spec = FieldSpec(comment=comment, options=options)
-    spec_exceptions = check_field_spec(block_spec, enum.__name__, False)
-    exceptions.extend(spec_exceptions)
+    get_field_spec(block_spec, exceptions, enum.__name__)
 
     if exceptions:
         raise ProtoBlockError(enum.__name__, "Enum", exceptions)
