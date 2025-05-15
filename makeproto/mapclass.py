@@ -54,6 +54,7 @@ def resolve_class_default(param: Parameter) -> tuple[bool, Any]:
 
 
 def resolve_dataclass_default(field: Field[Any]) -> tuple[Any, ...]:
+
     if field.default is not MISSING:
         default = field.default
         has_default = True
@@ -105,8 +106,19 @@ def field_factory(
 def map_class_fields(cls: type, bt_default_fallback: bool = True) -> list[FuncArg]:
 
     init_method = getattr(cls, "__init__", None)
+    if is_dataclass(cls):
+        return map_dataclass_fields(cls, bt_default_fallback)
+    elif init_method and not isinstance(init_method, type(object.__init__)):
+        return map_init_field(cls, bt_default_fallback)
+    else:
+        return map_model_fields(cls, bt_default_fallback)
 
-    if init_method and not isinstance(init_method, type(object.__init__)):
+
+def map_init_field(cls: type, bt_default_fallback: bool = True) -> list[FuncArg]:
+
+    init_method = getattr(cls, "__init__", None)
+
+    if init_method:
         hints = get_type_hints(
             init_method, globalns=vars(sys.modules[cls.__module__]), include_extras=True
         )
@@ -118,16 +130,25 @@ def map_class_fields(cls: type, bt_default_fallback: bool = True) -> list[FuncAr
             field_factory(obj, hints.get(name), bt_default_fallback)
             for name, obj in items
         ]
-    else:
-        return map_model_fields(cls, bt_default_fallback)
+    raise ValueError("No __init__ defined for the class")
 
 
-def map_model_fields(cls: type, bt_default_fallback: bool = True) -> list[FuncArg]:
+def map_dataclass_fields(cls: type, bt_default_fallback: bool = True) -> list[FuncArg]:
 
     hints = get_type_hints(
         cls, globalns=vars(sys.modules[cls.__module__]), include_extras=True
     )
+    items = [(field.name, field) for field in fields(cls)]
 
+    return [
+        field_factory(obj, hints.get(name), bt_default_fallback) for name, obj in items
+    ]
+
+
+def map_model_fields(cls: type, bt_default_fallback: bool = True) -> list[FuncArg]:
+    hints = get_type_hints(
+        cls, globalns=vars(sys.modules[cls.__module__]), include_extras=True
+    )
     items = [
         (
             name,

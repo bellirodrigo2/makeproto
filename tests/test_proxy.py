@@ -331,7 +331,7 @@ def test_proxy() -> None:
 
     name = "John"
     unit_price = {"foo": 3.1415}
-    proxy_prod = Product(
+    Product(
         name=name,
         unit_price=unit_price,
         code=proxy_code,

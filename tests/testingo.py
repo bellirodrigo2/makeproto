@@ -3,7 +3,7 @@ import tests.proto.compiled.teste_pb2 as proto
 
 def test_only() -> None:
 
-    objid = proto.ID(id=10)
+    proto.ID(id=10)
 
     code_num = 12
 
@@ -18,7 +18,7 @@ def test_only() -> None:
 
     name = "John"
     unit_price = {"foo": 3.1415}
-    objprod = proto.Product(
+    proto.Product(
         name=name,
         unit_price=unit_price,
         code=objcode,

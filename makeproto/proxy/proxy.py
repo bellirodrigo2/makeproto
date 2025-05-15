@@ -1,6 +1,5 @@
 # converter registry: map Python-level values to protobuf-friendly values
 import enum
-from functools import singledispatch
 from typing import (
     Any,
     Callable,

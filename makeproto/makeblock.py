@@ -1,4 +1,3 @@
-import profile
 from collections import defaultdict
 from enum import Enum
 from typing import Any, List, Optional, Set, Tuple

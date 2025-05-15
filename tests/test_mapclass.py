@@ -398,7 +398,7 @@ class OnlyClassNoHint:
         ),
     ],
 )
-def test_map_class_fields(cls, expected):
+def test_map_class_fields2(cls, expected):
     result = map_class_fields(cls)
     assert len(result) == len(expected)
 
