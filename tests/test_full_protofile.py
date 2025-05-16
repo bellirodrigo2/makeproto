@@ -3,8 +3,8 @@ from typing import Optional
 import pytest
 
 from makeproto.protobuilder import ProtoBlocksBuilder, Protobuilder
-from makeproto.prototypes import ProtoOption
-from makeproto.tempmodels import Block
+from makeproto.protoobj.base import ProtoOption
+from makeproto.template_models import Block
 
 
 def make_block(

@@ -7,19 +7,10 @@ from typing_extensions import Annotated
 
 from makeproto.exceptions import ProtoBlockError
 from makeproto.makeblock import make_msgblock
-from makeproto.prototypes import (
-    BaseMessage,
-    Bool,
-    Bytes,
-    FieldSpec,
-    Fixed64,
-    Int32,
-    OneOf,
-    ProtoOption,
-    String,
-    UInt32,
-)
-from makeproto.tempmodels import Block
+from makeproto.protoobj.base import FieldSpec, OneOf, ProtoOption
+from makeproto.protoobj.message import BaseMessage
+from makeproto.protoobj.types import Bool, Bytes, Fixed64, Int32, String, UInt32
+from makeproto.template_models import Block
 
 
 class Proto1(BaseMessage):
@@ -107,8 +98,8 @@ class Fail(Proto1):
     f: Dict[bytes, str]
     g: List[Path]
     h: Dict[int, Union[str, int]]
-    i: int = FieldSpec(comment=[])
-    j: str = FieldSpec(options={3: "bar"})
+    i: int = FieldSpec(comment=[], index=45)
+    j: str = FieldSpec(options={3: "bar"}, index=45)
     k: str = FieldSpec(options={"3": 3})
     lee: str = FieldSpec(options=[1])
 
@@ -118,7 +109,7 @@ def test_get_dataclass_block_fail() -> None:
     try:
         make_msgblock(Fail, "", "")
     except ProtoBlockError as e:
-        assert len(e) == 14
+        assert len(e) == 16
 
 
 class Hello2(Proto1):

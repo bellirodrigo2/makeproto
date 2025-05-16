@@ -12,28 +12,29 @@ message ID {
   int64 id = 1;
 }
 message Code {
-  int64 code = 1;
-  ProductArea pa = 2;
-  repeated string s = 3;
-  repeated ProductArea le = 4;
-  map<string, Enum2> me = 5;
+  // dict[str,Enum2]
+map<string, Enum2> me = 1;
+  int64 code = 2;
+  ProductArea pa = 3;
+  repeated string s = 4;
+  repeated ProductArea le = 5;
 }
 message User {
   ID id = 1;
   string name = 2;
-  string lastname = 3;
-  // email comment
-string email = 4 [json_name = "email_field"];
-  int64 age = 5;
-  repeated string tags = 6;
-  Code code2 = 7;
-  ProductArea pa = 8;
   oneof oo1 {
-  bool o1 = 9;
-  string o2 = 10;
-  int64 o3 = 11;
-  string o4 = 12;
+  bool o1 = 3;
+  string o2 = 9;
+  int64 o3 = 10;
+  string o4 = 11;
 }
+  repeated string tags = 4;
+  string lastname = 5;
+  int64 age = 6;
+  ProductArea pa = 7;
+  Code code2 = 8;
+  // email comment
+string email = 20 [json_name = "email_field"];
 }
 message Product {
   string name = 1;

@@ -1,18 +1,13 @@
 from functools import singledispatch
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Union, get_args, get_origin
+from typing import Any, Callable, Dict, Optional, get_args, get_origin
 
 from jinja2 import Environment, FileSystemLoader
 from typing_extensions import Annotated
 
-from makeproto.prototypes import (
-    DEFAULT_PRIMITIVES,
-    BaseProto,
-    EnumValue,
-    ProtoOption,
-    allowed_map_key,
-)
-from makeproto.tempmodels import Block, Field, Method, ProtoBlocks
+from makeproto.protoobj.base import EnumValue, ProtoOption
+from makeproto.protoobj.types import DEFAULT_PRIMITIVES, BaseProto, allowed_map_key
+from makeproto.template_models import Block, Field, Method, ProtoBlocks
 
 
 def get_type(bt: type[Any]) -> Optional[str]:

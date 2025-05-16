@@ -5,8 +5,8 @@ from typing import Any, get_args, get_origin
 import pytest
 from typing_extensions import Annotated
 
-from makeproto.prototypes import (
-    BaseMessage,
+from makeproto.protoobj.message import BaseMessage
+from makeproto.protoobj.types import (
     Bool,
     Bytes,
     Double,
@@ -15,14 +15,13 @@ from makeproto.prototypes import (
     Float,
     Int32,
     Int64,
-    ProtoModule,
     SInt32,
     SInt64,
     String,
     UInt32,
     UInt64,
 )
-from makeproto.templates import get_type_str
+from makeproto.template_render import get_type_str
 
 
 @dataclass
@@ -81,9 +80,6 @@ class IntClass:
     f14: Annotated[Fixed32, "foobar"]
     f15: Fixed64
     f16: Annotated[Fixed64, "foobar"]
-
-
-proto = ProtoModule("proto1")
 
 
 class C1(BaseMessage): ...

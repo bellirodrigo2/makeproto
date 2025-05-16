@@ -1,4 +1,3 @@
-# converter registry: map Python-level values to protobuf-friendly values
 import enum
 from typing import (
     Any,
@@ -15,45 +14,38 @@ from typing import (
     ValuesView,
 )
 
-from makeproto.prototypes import BaseProto
 
+class ProxyMessage:
 
-class ProxyMessage(BaseProto):
-    # _proto_cls: Optional[type[Any]] = None
-
-    def __init__(self, _proto_proxy: Any = None, **kwargs: Any):
+    def __init__(self, _wrapped: Any = None, **kwargs: Any):
 
         if isinstance(self, enum.Enum):
             return
-        if _proto_proxy:
-            self._proto = _proto_proxy
+        if _wrapped:
+            self._wrapped = _wrapped
             return
 
-        proto_class = getattr(self.__class__, "_proto_cls", None)
-        if proto_class is None:
-            raise TypeError(f'"_proto_cls" not set for "{self.__class__.__name__}"')
+        wrapped_class = getattr(self.__class__, "_wrapped_cls", None)
+        if wrapped_class is None:
+            raise TypeError(f'"_wrapped_cls" not set for "{self.__class__.__name__}"')
 
-        build_proto_kwargs = getattr(self.__class__, "_build_proto_kwargs", None)
-        if build_proto_kwargs is None:
+        build_wrapped_kwargs = getattr(self.__class__, "_wrapped_kwargs", None)
+        if build_wrapped_kwargs is None:
             raise TypeError(
-                f'"_build_proto_kwargs" not set for "{self.__class__.__name__}"'
+                f'"_wrapped_kwargs" not set for "{self.__class__.__name__}"'
             )
 
-        proto_kwargs = build_proto_kwargs(kwargs)
-        self._proto = proto_class(**proto_kwargs)
-
-        # self._proto = proto_class()
-        # for k, v in kwargs.items():
-        # setattr(self, k, v)
+        wrapped_kwargs = build_wrapped_kwargs(kwargs)
+        self._wrapped = wrapped_class(**wrapped_kwargs)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, ProxyMessage):
             return False
-        return self._proto == other._proto
+        return self._wrapped == other._wrapped
 
     @property
     def unwrap(self) -> Any:
-        return self._proto
+        return self._wrapped
 
     def __repr__(self) -> str:
         fields = ", ".join(

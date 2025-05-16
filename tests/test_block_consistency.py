@@ -2,8 +2,8 @@ from typing import Optional
 
 import pytest
 
-from makeproto.prototypes import ProtoOption
-from makeproto.tempmodels import Block, Field, Method
+from makeproto.protoobj.base import ProtoOption
+from makeproto.template_models import Block, Field, Method
 
 
 # Helpers

@@ -18,29 +18,29 @@ from makeproto.proxy.proxy import (
 
 def list_getter_factory(bt: type[Any], name: str) -> Callable[[Any], Any]:
     if issubclass(bt, Enum):
-        return lambda self: EnumListProxy(getattr(self._proto, name), bt)
+        return lambda self: EnumListProxy(getattr(self._wrapped, name), bt)
     elif issubclass(bt, ProxyMessage):
-        return lambda self: MessageListProxy(getattr(self._proto, name), bt)
+        return lambda self: MessageListProxy(getattr(self._wrapped, name), bt)
     else:
-        return lambda self: ValueListProxy(getattr(self._proto, name), bt)
+        return lambda self: ValueListProxy(getattr(self._wrapped, name), bt)
 
 
 def dict_getter_factory(bt: type[Any], name: str) -> Callable[[Any], Any]:
     if issubclass(bt, Enum):
-        return lambda self: EnumDictProxy(getattr(self._proto, name), bt)
+        return lambda self: EnumDictProxy(getattr(self._wrapped, name), bt)
     elif issubclass(bt, ProxyMessage):
-        return lambda self: MessageDictProxy(getattr(self._proto, name), bt)
+        return lambda self: MessageDictProxy(getattr(self._wrapped, name), bt)
     else:
-        return lambda self: ValueDictProxy(getattr(self._proto, name), bt)
+        return lambda self: ValueDictProxy(getattr(self._wrapped, name), bt)
 
 
 def single_getter_factory(bt: type[Any], name: str) -> Callable[[Any], Any]:
     if issubclass(bt, Enum):
-        return lambda self: bt(getattr(self._proto, name))
+        return lambda self: bt(getattr(self._wrapped, name))
     elif issubclass(bt, ProxyMessage):
-        return lambda self: bt(getattr(self._proto, name))
+        return lambda self: bt(getattr(self._wrapped, name))
     else:
-        return lambda self: getattr(self._proto, name)
+        return lambda self: getattr(self._wrapped, name)
 
 
 def make_getter(field: FuncArg) -> Callable[[Any], Any]:
@@ -70,7 +70,7 @@ def list_setter_factory(bt: type[Any], name: str) -> Callable[[Any, Any], Any]:
     def set_list(self: Any, value: Any, set_v: Callable[[Any], Any]) -> None:
 
         try:
-            target = getattr(self._proto, name)
+            target = getattr(self._wrapped, name)
             target[:] = [set_v(v) for v in value]
         except (TypeError, AttributeError) as e:
             raise TypeError(
@@ -79,7 +79,7 @@ def list_setter_factory(bt: type[Any], name: str) -> Callable[[Any, Any], Any]:
 
     # def set_list_message(self: Message, value: Any) -> None:
     #     try:
-    #         target = getattr(self._proto, name)
+    #         target = getattr(self._wrapped, name)
     #         del target[:]
     #         for item in value:
     #             target.add().CopyFrom(item.unwrap)
@@ -102,7 +102,7 @@ def dict_setter_factory(
 
     def set_dict(self: Any, value: dict[Any, Any], set_v: Callable[[Any], Any]) -> None:
         try:
-            target = getattr(self._proto, name)
+            target = getattr(self._wrapped, name)
             target.clear()
             for k, v in value.items():
                 target[k] = set_v(v)
@@ -113,7 +113,7 @@ def dict_setter_factory(
 
     # def set_dict_message(self: Message, value: Any) -> None:
     #     try:
-    #         target = getattr(self._proto, name)
+    #         target = getattr(self._wrapped, name)
     #         target.clear()
     #         for k, v in value.items():
     #             target[k].CopyFrom(v.unwrap)

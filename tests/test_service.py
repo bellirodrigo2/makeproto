@@ -4,9 +4,9 @@ from typing import List, Optional
 import pytest
 
 from makeproto.exceptions import ProtoBlockError
-from makeproto.makeblock import make_method
-from makeproto.prototypes import BaseMessage
-from makeproto.tempmodels import Method
+from makeproto.makeservice import make_method
+from makeproto.protoobj.message import BaseMessage
+from makeproto.template_models import Method
 
 
 @dataclass

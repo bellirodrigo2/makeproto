@@ -3,7 +3,9 @@ from typing import Annotated, List
 
 import pytest
 
-from makeproto.prototypes import BaseMessage, FieldSpec, Float, Int32, OneOf, String
+from makeproto.protoobj.base import FieldSpec, OneOf
+from makeproto.protoobj.message import BaseMessage
+from makeproto.protoobj.types import Float, Int32, String
 
 
 class TesteMessage(BaseMessage):
@@ -25,14 +27,17 @@ class User(TesteMessage):
     name: String
     lastname: str
     email: Annotated[
-        String, FieldSpec(comment="email comment", options={"json_name": "email_field"})
+        String,
+        FieldSpec(
+            comment="email comment", options={"json_name": "email_field"}, index=20
+        ),
     ]
     age: int
-    tags: list[String]
+    tags: list[String] = FieldSpec(index=4)
     code2: "Code"
-    pa: "ProductArea"
+    pa: "ProductArea" = FieldSpec(index=7)
 
-    o1: Annotated[bool, OneOf("oo1")]
+    o1: Annotated[bool, OneOf(key="oo1", index=3)]
     o2: Annotated[str, OneOf("oo1")]
     o3: Annotated[int, OneOf("oo1")]
     o4: Annotated[str, OneOf("oo1")]
@@ -43,7 +48,7 @@ class Code(TesteMessage):
     pa: "ProductArea"
     s: List[str]
     le: list["ProductArea"]
-    me: dict[str, "Enum2"]
+    me: dict[str, "Enum2"] = FieldSpec(comment="dict[str,Enum2]", index=1)
 
 
 class ProductArea(TesteMessage, Enum):

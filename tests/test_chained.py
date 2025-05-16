@@ -2,7 +2,7 @@ from enum import Enum
 from typing import Set
 
 from makeproto.makeblock import cls_map, cls_to_blocks
-from makeproto.prototypes import BaseMessage
+from makeproto.protoobj.message import BaseMessage
 
 
 def test_chanied(

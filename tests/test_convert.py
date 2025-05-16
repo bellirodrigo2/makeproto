@@ -1,9 +1,10 @@
 from enum import Enum
 from pathlib import Path
 
-from makeproto.makeblock import make_enumblock, make_msgblock
-from makeproto.prototypes import BaseMessage
-from makeproto.templates import render_block
+from makeproto.makeblock import make_msgblock
+from makeproto.makeenum import make_enumblock
+from makeproto.protoobj.message import BaseMessage
+from makeproto.template_render import render_block
 
 
 def test_compile_cls(

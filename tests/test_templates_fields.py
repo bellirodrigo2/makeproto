@@ -1,6 +1,6 @@
 import pytest
 
-from makeproto.templates import Field, Method, render_obj
+from makeproto.template_render import Field, Method, render_obj
 
 
 class MyResponse: ...

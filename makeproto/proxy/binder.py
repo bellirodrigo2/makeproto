@@ -2,7 +2,6 @@ from types import ModuleType
 from typing import Any, Callable, Dict, Optional
 
 from makeproto.mapclass import FuncArg, map_model_fields
-from makeproto.proxy.getters_setters import make_getter, make_kwarg, make_setter
 
 
 def _get_class(
@@ -30,20 +29,21 @@ def _bind_proxy(
     modules: Dict[str, ModuleType],
     make_getter: Callable[[FuncArg], Callable[[Any], Any]],
     make_setter: Callable[[FuncArg], Callable[[Any, Any], Any]],
+    make_kwarg: Callable[[FuncArg], Any],
     tgtcls: Optional[type[Any]] = None,
 ) -> None:
 
     tgtcls = tgtcls or mapcls
-    if hasattr(tgtcls, "_proto_cls"):
+    if hasattr(tgtcls, "_wrapped_cls"):
         return
 
     # bind protobuf class constructor
     proto_cls = _get_class(mapcls, modules)
-    tgtcls._proto_cls = proto_cls
+    tgtcls._wrapped_cls = proto_cls
 
     fields = map_model_fields(mapcls)
     slot_names = tuple(f.name for f in fields)
-    tgtcls.__slots__ = slot_names + ("_proto",)
+    tgtcls.__slots__ = slot_names + ("_wrapped",)
 
     proto_kwargs: Dict[str, Callable[[Any], Any]] = {}
 
@@ -61,15 +61,6 @@ def _bind_proxy(
             )
 
     # set build proto kwargs
-    tgtcls._build_proto_kwargs = lambda kwargs: {
+    tgtcls._wrapped_kwargs = lambda kwargs: {
         k: proto_kwargs[k](v) for k, v in kwargs.items()
     }
-
-
-def bind_proxy(
-    mapcls: type[Any],
-    modules: Dict[str, ModuleType],
-) -> None:
-    _bind_proxy(
-        mapcls=mapcls, modules=modules, make_getter=make_getter, make_setter=make_setter
-    )

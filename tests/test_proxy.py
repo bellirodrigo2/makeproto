@@ -1,12 +1,13 @@
 from enum import Enum
 from pathlib import Path
-from typing import Annotated, Any, Dict, List, Mapping, Sequence, Tuple
+from typing import Annotated, Dict, List, Mapping, Sequence, Tuple
 
 import pytest
 
-from makeproto.prototypes import FieldSpec, Float, OneOf, String
-from makeproto.proxy.binder import bind_proxy
+from makeproto.protoobj.base import FieldSpec, OneOf
+from makeproto.protoobj.types import Float, String
 from makeproto.proxy.importer import import_py_files_from_folder
+from makeproto.proxy.proto_proxy import bind_proxy
 from makeproto.proxy.proxy import ProxyMessage
 
 # class ProtoMessage(ProxyMessage):
@@ -186,7 +187,7 @@ def test_proxy(id: Tuple[ID, int]) -> None:
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap
     assert proto_id.id == n
-    proxy_id2 = ID(_proto_proxy=proto_id)
+    proxy_id2 = ID(_wrapped=proto_id)
     assert proxy_id2.id == n
 
     n = 13
@@ -194,7 +195,7 @@ def test_proxy(id: Tuple[ID, int]) -> None:
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap
     assert proto_id.id == n
-    proxy_id2 = ID(_proto_proxy=proto_id)
+    proxy_id2 = ID(_wrapped=proto_id)
     assert proxy_id2.id == n
 
     n = 12
@@ -203,7 +204,7 @@ def test_proxy(id: Tuple[ID, int]) -> None:
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap
     assert proto_id.id == n
-    proxy_id2 = ID(_proto_proxy=proto_id)
+    proxy_id2 = ID(_wrapped=proto_id)
     assert proxy_id2.id == n
 
     n = 11
@@ -212,7 +213,7 @@ def test_proxy(id: Tuple[ID, int]) -> None:
     assert proxy_id.id == n
     proto_id = proxy_id.unwrap
     assert proto_id.id == n
-    proxy_id2 = ID(_proto_proxy=proto_id)
+    proxy_id2 = ID(_wrapped=proto_id)
     assert proxy_id2.id == n
 
 
@@ -222,7 +223,7 @@ def test_code_simple(
 
     proxy_code, obj_prodarea, obj_enum2, code_num, s, le, me = code
     proto_code = proxy_code.unwrap
-    proxy_code2 = Code(_proto_proxy=proto_code)
+    proxy_code2 = Code(_wrapped=proto_code)
 
     assert proxy_code.code == code_num
     assert proxy_code.pa == obj_prodarea
@@ -251,7 +252,7 @@ def test_code_enum(
 
     proxy_code, _, _, _, _, _, _ = code
     proto_code = proxy_code.unwrap
-    proxy_code2 = Code(_proto_proxy=proto_code)
+    proxy_code2 = Code(_wrapped=proto_code)
 
     proxy_code.pa = ProductArea.Area2
     assert proxy_code.pa == ProductArea.Area2
@@ -265,7 +266,7 @@ def test_code_list(
 
     proxy_code, _, _, _, s, _, _ = code
     proto_code = proxy_code.unwrap
-    proxy_code2 = Code(_proto_proxy=proto_code)
+    proxy_code2 = Code(_wrapped=proto_code)
 
     proxy_code.s.append("hello")
     assert len(proxy_code.s) == 3
@@ -416,7 +417,7 @@ def test_code_unwrap(
 
     proxy_code, _, _, _, _, _, _ = code
     proto_code = proxy_code.unwrap
-    proxy_code2 = Code(_proto_proxy=proto_code)
+    proxy_code2 = Code(_wrapped=proto_code)
 
     # unwrap
     proto1 = proxy_code.unwrap
@@ -430,7 +431,7 @@ def test_code_wrong(
 
     proxy_code, obj_prodarea, obj_enum2, _, s, _, _ = code
     proto_code = proxy_code.unwrap
-    proxy_code2 = Code(_proto_proxy=proto_code)
+    proxy_code2 = Code(_wrapped=proto_code)
 
     proxy_code.s = []
     assert proxy_code.s == []

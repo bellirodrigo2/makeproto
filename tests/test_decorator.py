@@ -1,4 +1,4 @@
-from makeproto.prototypes import ProtoHeader, ProtoModule
+from makeproto.protoobj.decorators import ProtoHeader, ProtoModule
 
 proto1 = ProtoModule("proto1", "pack1")
 
