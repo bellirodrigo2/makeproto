@@ -197,41 +197,60 @@ def cls_map(
 
 def cls_to_blocks(
     tgt: type[BaseMessage],
-    default_protofile: str,
-    default_package: str,
-    visited: Optional[set[Block]] = None,
-) -> set[Block]:
+) -> List[Block]:
 
-    if not isinstance(tgt, type):  # type: ignore
-        raise TypeError(f'tgt argumento should be a type. found "{tgt}"')
+    defproto = tgt.protofile()
+    defpack = tgt.package()
+    clss = cls_map(tgt, defproto, defpack)
 
-    if visited is None:
-        visited: Set[Block] = set()
+    blocks: List[Block] = []
+    for cls in clss:
+        if issubclass(cls, Enum):
+            enumblock = make_enumblock(cls, defproto, defpack)
+            blocks.append(enumblock)
+        elif issubclass(cls, BaseMessage):
+            msgblock = make_msgblock(cls, defproto, defpack)
+            blocks.append(msgblock)
+    return blocks
 
-    # Evita regenerar blocos que já foram criados
-    if any(b.name == tgt.__name__ for b in visited):
-        return visited
 
-    if issubclass(tgt, Enum):
-        enumblock = make_enumblock(tgt, default_protofile, default_package)
-        visited.add(enumblock)
+# def OLDcls_to_blocks(
+#     tgt: type[BaseMessage],
+#     default_protofile: str,
+#     default_package: str,
+#     visited: Optional[set[Block]] = None,
+# ) -> set[Block]:
 
-    elif issubclass(tgt, BaseMessage):  # type: ignore
-        msgblock = make_msgblock(tgt, default_protofile, default_package)
-        visited.add(msgblock)
+#     if not isinstance(tgt, type):  # type: ignore
+#         raise TypeError(f'tgt argumento should be a type. found "{tgt}"')
 
-        args = map_class_fields(tgt, False)
+#     if visited is None:
+#         visited: Set[Block] = set()
 
-        for arg in args:
-            bt = arg.basetype
-            if arg.istype(BaseMessage):
-                protofile, package = get_module(bt)
-                msgs = cls_to_blocks(
-                    arg.basetype,
-                    protofile or default_protofile,
-                    package or default_package,
-                    visited,
-                )
-                visited.update(msgs)
+#     # Evita regenerar blocos que já foram criados
+#     if any(b.name == tgt.__name__ for b in visited):
+#         return visited
 
-    return visited
+#     if issubclass(tgt, Enum):
+#         enumblock = make_enumblock(tgt, default_protofile, default_package)
+#         visited.add(enumblock)
+
+#     elif issubclass(tgt, BaseMessage):  # type: ignore
+#         msgblock = make_msgblock(tgt, default_protofile, default_package)
+#         visited.add(msgblock)
+
+#         args = map_class_fields(tgt, False)
+
+#         for arg in args:
+#             bt = arg.basetype
+#             if arg.istype(BaseMessage):
+#                 protofile, package = get_module(bt)
+#                 msgs = cls_to_blocks(
+#                     arg.basetype,
+#                     protofile or default_protofile,
+#                     package or default_package,
+#                     visited,
+#                 )
+#                 visited.update(msgs)
+
+#     return visited
