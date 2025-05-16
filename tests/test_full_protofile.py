@@ -18,7 +18,8 @@ def make_block(
         fields=set(),
         comment="",
         options=ProtoOption(),
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
     )
 
 

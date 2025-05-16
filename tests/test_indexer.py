@@ -1,6 +1,6 @@
 import pytest
 
-from makeproto.indexer import Indexer
+from makeproto.reserved import Indexer
 
 
 @pytest.fixture

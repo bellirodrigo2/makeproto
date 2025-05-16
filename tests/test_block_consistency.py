@@ -36,7 +36,8 @@ def test_valid_service_block():
         name="S",
         block_type="service",
         fields={make_method("M")},
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
         comment="",
         options=ProtoOption(),
     )
@@ -51,7 +52,7 @@ def test_invalid_service_block_with_field():
             name="S",
             block_type="service",
             fields={make_field("f")},
-            reserved=[],
+            reserved_index=[],
             comment="",
             options=ProtoOption(),
         )
@@ -66,7 +67,8 @@ def test_valid_enum_block():
         name="E",
         block_type="enum",
         fields={field},
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
         comment="",
         options=ProtoOption(),
     )
@@ -82,7 +84,8 @@ def test_enum_block_with_type_should_fail():
             name="E",
             block_type="enum",
             fields={field},
-            reserved=[],
+            reserved_index=[],
+            reserved_keys="",
             comment="",
             options=ProtoOption(),
         )
@@ -96,7 +99,8 @@ def test_valid_message_block():
         name="M",
         block_type="message",
         fields={make_field("field", ftype=str)},
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
         comment="",
         options=ProtoOption(),
     )
@@ -112,7 +116,8 @@ def test_message_block_with_missing_type_should_fail():
             name="M",
             block_type="message",
             fields={field},
-            reserved=[],
+            reserved_index=[],
+            reserved_keys="",
             comment="",
             options=ProtoOption(),
         )
@@ -126,7 +131,8 @@ def test_message_block_with_method_should_fail():
             name="M",
             block_type="message",
             fields={make_method("m")},
-            reserved=[],
+            reserved_index=[],
+            reserved_keys="",
             comment="",
             options=ProtoOption(),
         )
@@ -141,7 +147,8 @@ def test_valid_oneof_block():
         name="O",
         block_type="oneof",
         fields={field},
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
         comment="",
         options=ProtoOption(),
     )
@@ -157,7 +164,8 @@ def test_oneof_block_with_no_type_should_fail():
             name="O",
             block_type="oneof",
             fields={field},
-            reserved=[],
+            reserved_index=[],
+            reserved_keys="",
             comment="",
             options=ProtoOption(),
         )
@@ -171,7 +179,8 @@ def test_oneof_block_with_method_should_fail():
             name="O",
             block_type="oneof",
             fields={make_method("m")},
-            reserved=[],
+            reserved_index=[],
+            reserved_keys="",
             comment="",
             options=ProtoOption(),
         )

@@ -130,7 +130,8 @@ class Block(HasMeta, HasProtoModule):
     name: str
     block_type: Literal["message", "enum", "oneof", "service"]
     fields: List[Union[Field, Method, "Block"]]
-    reserved: str
+    reserved_index: str
+    reserved_keys: str
 
     def __post_init__(self) -> None:
         validate_block[self.block_type](self)

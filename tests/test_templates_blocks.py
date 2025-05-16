@@ -86,7 +86,8 @@ def test_block_without_options_or_comment(block_type, request, field_fixture):
         fields=[field],
         comment="",
         options={},
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
     )
     rendered_fields = [render_obj(f) for f in block.fields]
     for r in rendered_fields:
@@ -112,7 +113,8 @@ def test_block_with_field_options(block_type, request, field_fixture):
         fields=[field],
         comment="",
         options={},
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
     )
     rendered = [render_obj(f) for f in block.fields][0]
     assert "[deprecated = true]" in rendered
@@ -134,7 +136,8 @@ def test_service_block_with_method_options(block_type, request, method_fixture):
         fields=[method],
         options={},
         comment="",
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
     )
     rendered = [render_obj(m) for m in block.fields][0]
     assert 'option opt1 = "value1";' in rendered
@@ -149,7 +152,8 @@ def test_block_with_comment_and_options(simple_field):
         fields=[simple_field],
         comment="This is a message block",
         options={"opt_block": "true"},
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
     )
     assert block.comment == "This is a message block"
     assert block.options["opt_block"] == "true"
@@ -163,7 +167,8 @@ def test_message_block_with_oneof(simple_field: Field) -> None:
         block_type="oneof",
         fields=[simple_field],
         comment="oneof comment",
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
         options={},
     )
 
@@ -174,7 +179,8 @@ def test_message_block_with_oneof(simple_field: Field) -> None:
         block_type="message",
         fields=[oneof],
         comment="Message with oneof",
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
         options={},
     )
 
@@ -221,7 +227,8 @@ def test_message_block_with_fields_and_oneof_with_options_and_comments():
         fields=[oneof_field1, oneof_field2],
         comment="Contact info, mutually exclusive",
         options={"opt_oneof": "yes"},
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
     )
 
     # Block contendo o field normal e o oneof
@@ -233,7 +240,8 @@ def test_message_block_with_fields_and_oneof_with_options_and_comments():
         fields=[direct_field, oneof],
         comment="Profile of the user",
         options={"opt_msg": "true"},
-        reserved=[],
+        reserved_index=[],
+        reserved_keys="",
     )
 
     rendered = render_block(message)

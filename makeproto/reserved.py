@@ -1,5 +1,5 @@
 from functools import singledispatchmethod
-from typing import List, NoReturn, Optional, Set, Union
+from typing import List, NoReturn, Optional, Set, Tuple, Union
 
 
 class Indexer:
@@ -105,3 +105,22 @@ class Indexer:
             else:
                 parts.append(f"{item.start} to {item.stop - 1}")
         return ",".join(parts)
+
+
+def reserved_keys_str(keys: List[str]) -> str:
+    return ", ".join(f'"{name}"' for name in keys)
+
+
+def extract_reserveds(
+    reserveds: List[Union[int, range, str]],
+) -> Tuple[List[Union[int, range]], List[str]]:
+
+    keys: List[str] = []
+    indexes: List[Union[int, range]] = []
+
+    for item in reserveds:
+        if isinstance(item, str):
+            keys.append(item)
+        else:
+            indexes.append(item)
+    return indexes, keys

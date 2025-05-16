@@ -18,7 +18,7 @@ class ProtoModule:
 
         cls.comment = classmethod(lambda cls_: "")
         cls.options = classmethod(lambda cls_: ProtoOption())
-        cls.reserved = classmethod(lambda cls_: [])
+        cls.reserved_index = classmethod(lambda cls_: [])
 
         return cls
 
@@ -28,14 +28,14 @@ class ProtoHeader:
         self,
         comment: str = "",
         options: Optional[Dict[str, Union[str, bool]]] = None,
-        reserved: Optional[List[Union[int, range]]] = None,
+        reserved_index: Optional[List[Union[int, range]]] = None,
     ):
         self.comment = comment
         self.options = ProtoOption(**(options or {}))
-        self.reserved = reserved or []
+        self.reserved_index = reserved_index or []
 
     def __call__(self, cls: type) -> type:
         cls.comment = classmethod(lambda cls_: self.comment)
         cls.options = classmethod(lambda cls_: self.options)
-        cls.reserved = classmethod(lambda cls_: self.reserved)
+        cls.reserved_index = classmethod(lambda cls_: self.reserved_index)
         return cls

@@ -3,12 +3,12 @@ from enum import Enum
 from typing import Dict, List, Optional, Set, Union
 
 from makeproto.exceptions import ProtoBlockError
-from makeproto.indexer import Indexer
 from makeproto.makeenum import make_enumblock
 from makeproto.mapclass import map_class_fields
 from makeproto.protoobj.base import FieldSpec, OneOf, ProtoOption
 from makeproto.protoobj.message import BaseMessage, get_headers, get_module
 from makeproto.protoobj.rules import check_arg, check_field_spec
+from makeproto.reserved import Indexer, extract_reserveds, reserved_keys_str
 from makeproto.template_models import Block, Field
 
 
@@ -71,9 +71,11 @@ def make_msgblock(
 
     exceptions: List[Exception] = []
 
-    protofile, package, comment, options, reserved = get_headers(
+    protofile, package, comment, options, reserveds = get_headers(
         cls, default_protofile, default_package
     )
+
+    reserved_index, reserved_keys = extract_reserveds(reserveds)
 
     block_spec = FieldSpec(comment=comment, options=options)
     spec_exceptions = check_field_spec(block_spec, cls.__name__)
@@ -126,11 +128,12 @@ def make_msgblock(
             fields=v,
             comment="",
             options=ProtoOption(),
-            reserved=str([]),
+            reserved_index="",
+            reserved_keys="",
         )
         fields.append(ootemp)
 
-    indexer = Indexer(idxs=reserved)
+    indexer = Indexer(idxs=reserved_index)
     indexer.reserve(range(1900, 1999))  # reserved by google
 
     index_exceptions = validate_field_indexes(field_indexes, indexer)
@@ -147,7 +150,8 @@ def make_msgblock(
         fields=fields,
         comment=comment,
         options=options,
-        reserved=str(Indexer(idxs=reserved)),
+        reserved_index=str(Indexer(idxs=reserved_index)),
+        reserved_keys=reserved_keys_str(reserved_keys),
     )
 
     for idx in field_indexes.values():
@@ -212,45 +216,3 @@ def cls_to_blocks(
             msgblock = make_msgblock(cls, defproto, defpack)
             blocks.append(msgblock)
     return blocks
-
-
-# def OLDcls_to_blocks(
-#     tgt: type[BaseMessage],
-#     default_protofile: str,
-#     default_package: str,
-#     visited: Optional[set[Block]] = None,
-# ) -> set[Block]:
-
-#     if not isinstance(tgt, type):  # type: ignore
-#         raise TypeError(f'tgt argumento should be a type. found "{tgt}"')
-
-#     if visited is None:
-#         visited: Set[Block] = set()
-
-#     # Evita regenerar blocos que já foram criados
-#     if any(b.name == tgt.__name__ for b in visited):
-#         return visited
-
-#     if issubclass(tgt, Enum):
-#         enumblock = make_enumblock(tgt, default_protofile, default_package)
-#         visited.add(enumblock)
-
-#     elif issubclass(tgt, BaseMessage):  # type: ignore
-#         msgblock = make_msgblock(tgt, default_protofile, default_package)
-#         visited.add(msgblock)
-
-#         args = map_class_fields(tgt, False)
-
-#         for arg in args:
-#             bt = arg.basetype
-#             if arg.istype(BaseMessage):
-#                 protofile, package = get_module(bt)
-#                 msgs = cls_to_blocks(
-#                     arg.basetype,
-#                     protofile or default_protofile,
-#                     package or default_package,
-#                     visited,
-#                 )
-#                 visited.update(msgs)
-
-#     return visited

@@ -1,17 +1,25 @@
 syntax= "proto3";
 enum ProductArea {
+
+  
   Area1 = 0;
   Area2 = 1;
   Area3 = 2;
 }
 enum Enum2 {
+
+  
   e1 = 0;
   e2 = 1;
 }
 message ID {
+
+  
   int64 id = 1;
 }
 message Code {
+
+  
   // dict[str,Enum2]
 map<string, Enum2> me = 1;
   int64 code = 2;
@@ -20,9 +28,13 @@ map<string, Enum2> me = 1;
   repeated ProductArea le = 5;
 }
 message User {
+
+  
   ID id = 1;
   string name = 2;
   oneof oo1 {
+
+  
   bool o1 = 3;
   string o2 = 9;
   int64 o3 = 10;
@@ -37,6 +49,8 @@ message User {
 string email = 20 [json_name = "email_field"];
 }
 message Product {
+
+  
   string name = 1;
   map<string, float> unit_price = 2;
   Code code = 3;
@@ -44,6 +58,8 @@ message Product {
   Enum2 enum2 = 5;
 }
 message Requisition {
+
+  
   User user = 1;
   Code code = 2;
   Product product = 3;

@@ -5,6 +5,7 @@ from makeproto.exceptions import ProtoBlockError
 from makeproto.protoobj.base import FieldSpec, ProtoOption
 from makeproto.protoobj.message import BaseMessage, get_headers
 from makeproto.protoobj.rules import check_field_spec
+from makeproto.reserved import Indexer, extract_reserveds, reserved_keys_str
 from makeproto.template_models import Block, Field
 
 
@@ -33,7 +34,7 @@ def make_enumblock(
             )
         )
 
-    protofile, package, comment, options, reserved = get_headers(
+    protofile, package, comment, options, reserveds = get_headers(
         enum, default_protofile, default_package
     )
 
@@ -44,6 +45,8 @@ def make_enumblock(
     if exceptions:
         raise ProtoBlockError(enum.__name__, "Enum", exceptions)
 
+    reserved_index, reserved_keys = extract_reserveds(reserveds)
+
     enumBlock: Block = Block(
         protofile=protofile,
         package=package,
@@ -52,6 +55,7 @@ def make_enumblock(
         fields=fields,
         comment=comment,
         options=options,
-        reserved=reserved,
+        reserved_index=str(Indexer(idxs=reserved_index)),
+        reserved_keys=reserved_keys_str(reserved_keys),
     )
-    return enumBlock
+    return enumBlock  # type: ignore

@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Annotated, List
+from typing import Annotated, List, Union
 
 import pytest
 
@@ -44,6 +44,11 @@ class User(TesteMessage):
 
 
 class Code(TesteMessage):
+
+    @classmethod
+    def reserved(cls) -> List[Union[int, range]]:
+        return [range(3, 18)]
+
     code: int
     pa: "ProductArea"
     s: List[str]

@@ -8,7 +8,7 @@ class C1:
     pass
 
 
-@ProtoHeader(comment="Custom header", reserved=["id"])
+@ProtoHeader(comment="Custom header", reserved_index=["id"])
 @proto1
 class C2:
     pass
@@ -24,13 +24,13 @@ def test_decorators() -> None:
     assert C1.protofile() == "proto1"
     assert C1.package() == "pack1"
     assert C1.comment() == ""
-    assert C1.reserved() == []
+    assert C1.reserved_index() == []
 
     assert C2.protofile() == "proto1"
     assert C2.package() == "pack1"
     assert C2.comment() == "Custom header"
-    assert C2.reserved() == ["id"]
+    assert C2.reserved_index() == ["id"]
 
     assert C3.comment() == "Custom header"
-    assert C3.reserved() == []
+    assert C3.reserved_index() == []
     assert C3.options() == {"foo": "bar"}

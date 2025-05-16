@@ -1,4 +1,4 @@
-from makeproto.indexer import Indexer
+from makeproto.reserved import Indexer
 
 indexer = Indexer()
 

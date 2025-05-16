@@ -32,7 +32,7 @@ class BaseMessage(BaseProto):
         return ProtoOption()
 
     @classmethod
-    def reserved(cls) -> List[Union[int, range]]:
+    def reserved_index(cls) -> List[Union[int, range, str]]:
         return []
 
 
@@ -75,7 +75,7 @@ def get_headers(
 
     comment, options = get_comment_options(cls)
 
-    reserved_method = getattr(cls, "reserved", None)
+    reserved_method = getattr(cls, "reserved_index", None)
     reserved: List[Union[int, range]] = (
         [] if reserved_method is None else reserved_method()
     )

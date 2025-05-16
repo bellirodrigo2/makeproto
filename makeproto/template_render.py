@@ -90,6 +90,8 @@ def render_block(block: Block) -> str:
         template={"block": block.block_type, "name": block.name},
         fields=rendered_items,
         options=block.options or {},
+        reserved_index=block.reserved_index,
+        reserved_keys=block.reserved_keys,
     )
 
 
