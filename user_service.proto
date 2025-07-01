@@ -1,9 +1,0 @@
-syntax = "proto3";
-import "user.proto";
-package pack2;
-service user_service {
-  rpc newuser(userpack.UserInput) returns (userpack.User);
-  rpc getusers(userpack.UserNames) returns (stream userpack.User);
-  rpc manynewuser(stream userpack.UserInput) returns (userpack.UserList);
-  rpc bilateralnewuser(stream userpack.UserInput) returns (stream userpack.User);
-}
