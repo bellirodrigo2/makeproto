@@ -7,22 +7,17 @@ from makeproto.report import CompileErrorCode, CompileReport
 from makeproto.template import MethodTemplate, ProtoTemplate, ServiceTemplate
 
 
-def if_stream_get_type(bt: Type[Any]) -> Optional[type[Any]]:
+def get_func_arg(bt: Type[Any]) -> Optional[type[Any]]:
     if get_origin(bt) is AsyncIterator:
         return get_args(bt)[0]
     return bt
-
-
-def get_func_arg(bt: Type[Any]) -> Type[Any]:
-    basetype = if_stream_get_type(bt)
-    return basetype or bt
 
 
 class ImportsSetter(CompilerPass):
 
     def __init__(
         self,
-        get_class_metadata: Callable[[Type[Any]], Path],
+        get_class_metadata: Callable[[Type[Any]], str],
         # proto_path: Optional[Path] = None,
     ) -> None:
         super().__init__()
@@ -37,7 +32,7 @@ class ImportsSetter(CompilerPass):
         ftype_proto = self.get_class_metadata(ftype)
         # import_path = ftype_proto.relative_to(self.proto_path)
         # import_str = import_path.as_posix()
-        return str(ftype_proto)
+        return ftype_proto
 
     def _set_imports(self, field: MethodTemplate, ftype: Type[Any]) -> None:
         try:

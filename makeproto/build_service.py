@@ -1,5 +1,4 @@
 from collections import defaultdict
-from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from makeproto.compiler import CompilerContext, CompilerPass
@@ -159,7 +158,7 @@ def make_validators(
 
 
 def make_setters(
-    get_protofile_path: Callable[[Type[Any]], Path],
+    get_protofile_path: Callable[[Type[Any]], str],
     get_package: Callable[[Type[Any]], str],
     maxchar_per_line: int = 80,
     always_format: bool = True,
@@ -179,7 +178,7 @@ def compile_service(
     services: Dict[str, List[IService]],
     extract_requests: Callable[..., List[Type[Any]]],
     extract_response: Callable[..., Type[Any]],
-    get_protofile_path: Callable[[Type[Any]], Path],
+    get_protofile_path: Callable[[Type[Any]], str],
     get_package: Callable[[Type[Any]], str],
     custompassmethod: Callable[[Any], List[str]] = lambda x: [],
     maxchar_per_line: int = 80,
