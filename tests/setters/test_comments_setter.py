@@ -1,6 +1,6 @@
 import textwrap
 
-from makeproto.setters.comment import format_comment
+from makeproto.format_comment import format_comment
 
 
 def test_already_single_line_comment() -> None:

@@ -1,14 +1,14 @@
 import pytest
 
-from makeproto.compiler import CompilerContext
-from makeproto.setters.name import (
-    NameSetter,
+from makeproto.casing import (
     NameTransformStrategy,
     normalize_name,
     to_camel_case,
     to_pascal_case,
     to_snake_case,
 )
+from makeproto.compiler import CompilerContext
+from makeproto.setters.name import NameSetter
 from makeproto.template import MethodTemplate, ServiceTemplate
 from tests.test_helpers import make_method, make_service
 
@@ -77,7 +77,7 @@ def test_visit_field_and_method_snake(
 ) -> None:
     field: MethodTemplate = make_method("FieldName", service=block)
     method: MethodTemplate = make_method("MethodName", service=block)
-    normalizer = NameSetter("snake_case")
+    normalizer = NameSetter(to_snake_case)
     normalizer.execute([block], context)
     assert block.name == "valid_block"
     assert field.name == "field_name"
@@ -88,7 +88,7 @@ def test_camel_case(context: CompilerContext) -> None:
     block: ServiceTemplate = make_service("block_name")
     field1: MethodTemplate = make_method("field_one", service=block)
     field2: MethodTemplate = make_method("field_two", service=block)
-    normalizer = NameSetter("camel_case")
+    normalizer = NameSetter(to_camel_case)
     normalizer.execute([block], context)
     assert block.name == "blockName"
     assert field1.name == "fieldOne"

@@ -148,16 +148,16 @@ def make_validators(
 
 
 def make_setters(
-    maxchar_per_line: int = 80,
-    always_format: bool = True,
+    name_normalizer: Callable[[str], str] = lambda x: x,
+    format_comment: Callable[[str], str] = lambda x: x,
 ) -> List[CompilerPass]:
 
     setters: List[CompilerPass] = [
         ServiceSetter(),
         TypeSetter(),
-        NameSetter(),
+        NameSetter(name_normalizer),
         ImportsSetter(),
-        CommentSetter(maxchar_per_line, always_format),
+        CommentSetter(format_comment),
     ]
     return setters
 

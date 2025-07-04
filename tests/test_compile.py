@@ -1,11 +1,12 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, AsyncIterator, Type
+from typing import AsyncIterator
 
 import pytest
 
 from makeproto.build_service import CompilationError, make_setters, make_validators
 from makeproto.compiler import CompilerContext
+from makeproto.format_comment import format_comment
 from makeproto.template import (
     MethodTemplate,
     ProtoTemplate,
@@ -101,6 +102,10 @@ def simple_service() -> ServiceTemplate:
     return service
 
 
+def format_comment_(text: str) -> str:
+    return format_comment(text, 80, True)
+
+
 def test_protofile_basic(simple_service: ServiceTemplate) -> None:
     protofile_name = "protofile1"
     protofile = ProtoTemplate(
@@ -115,7 +120,7 @@ def test_protofile_basic(simple_service: ServiceTemplate) -> None:
     ctx = CompilerContext(state={protofile_name: protofile})
 
     validators = make_validators()
-    setters = make_setters()
+    setters = make_setters(format_comment=format_comment_)
     compilerpasses = [validators, setters]
     blocks = [simple_service]
 
@@ -130,7 +135,6 @@ def test_protofile_basic(simple_service: ServiceTemplate) -> None:
     protofile_dict = protofile.to_dict()
 
     rendered = render_protofile_template(protofile_dict)
-
     with TemporaryDirectory() as temp_dir:
         proto_path = Path(temp_dir).resolve()
 
