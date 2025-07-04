@@ -13,6 +13,7 @@ from makeproto.template import (
     render_protofile_template,
 )
 from tests.compile_helper import compile_protoc
+from tests.test_helpers import make_metatype_from_type
 
 
 class Base:
@@ -24,12 +25,8 @@ class Empty(Base):
     proto_path = "google/protobuf/empty.proto"
 
 
-def get_proto_path(cls: Type[Any]) -> Path:
-    return cls.proto_path
-
-
-def get_package(cls: Type[Any]) -> str:
-    return cls.package
+empty_instance = make_metatype_from_type(Empty)
+empty_iterator = make_metatype_from_type(AsyncIterator[Empty])
 
 
 async def ping(req: Empty) -> Empty:
@@ -63,8 +60,8 @@ def simple_service() -> ServiceTemplate:
         name="ping",
         comments="Ping Method",
         options=[],
-        request_types=[Empty],
-        response_type=Empty,
+        request_types=[empty_instance],
+        response_type=empty_instance,
         method_func=ping,
         service=service,
     )
@@ -72,8 +69,8 @@ def simple_service() -> ServiceTemplate:
         name="ping_client_stream",
         comments="Ping Method Client Stream",
         options=[],
-        request_types=[AsyncIterator[Empty]],
-        response_type=Empty,
+        request_types=[empty_iterator],
+        response_type=empty_instance,
         method_func=ping_client_stream,
         service=service,
     )
@@ -81,8 +78,8 @@ def simple_service() -> ServiceTemplate:
         name="server_stream_ping",
         comments="Ping Method Server Stream",
         options=[],
-        request_types=[Empty],
-        response_type=AsyncIterator[Empty],
+        request_types=[empty_instance],
+        response_type=empty_iterator,
         method_func=ping_server_stream,
         service=service,
     )
@@ -90,8 +87,8 @@ def simple_service() -> ServiceTemplate:
         name="ping_bilateral",
         comments="Ping Method Bilateral",
         options=[],
-        request_types=[AsyncIterator[Empty]],
-        response_type=AsyncIterator[Empty],
+        request_types=[empty_iterator],
+        response_type=empty_iterator,
         method_func=ping_bilateral,
         service=service,
     )
@@ -118,7 +115,7 @@ def test_protofile_basic(simple_service: ServiceTemplate) -> None:
     ctx = CompilerContext(state={protofile_name: protofile})
 
     validators = make_validators()
-    setters = make_setters(get_proto_path, get_package)
+    setters = make_setters()
     compilerpasses = [validators, setters]
     blocks = [simple_service]
 

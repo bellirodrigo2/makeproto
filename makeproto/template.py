@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Protocol, Set, Type
 
 from jinja2 import Environment, FileSystemLoader
+from typing_extensions import Any, Callable, Dict, List, Optional, Protocol, Set, Type
+
+from makeproto.interface import IMetaType
 
 
 class Visitor(Protocol):
@@ -30,8 +32,8 @@ class MethodTemplate(Node, ToDict):
 
     method_func: Callable[..., Any]
     name: str
-    request_types: List[Type[Any]]
-    response_type: Optional[Type[Any]]
+    request_types: List[IMetaType]
+    response_type: Optional[IMetaType]
     request_stream: bool = False
     response_stream: bool = False
 

@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Type
+from typing_extensions import List
 
 from makeproto.interface import IService
 from makeproto.template import MethodTemplate, ServiceTemplate
@@ -6,8 +6,6 @@ from makeproto.template import MethodTemplate, ServiceTemplate
 
 def make_service_template(
     service: IService,
-    extract_requests: Callable[..., List[Type[Any]]],
-    extract_response: Callable[..., Type[Any]],
 ) -> ServiceTemplate:
 
     service_template = ServiceTemplate(
@@ -23,16 +21,13 @@ def make_service_template(
     for labeledmethod in service.methods:
         method = labeledmethod.method
 
-        requests = extract_requests(method)
-        response_type = extract_response(method)
-
         method_template = MethodTemplate(
             method_func=method,
             name=method.__name__,
             options=labeledmethod.options,
             comments=labeledmethod.comments,
-            request_types=requests,
-            response_type=response_type,
+            request_types=labeledmethod.request_types,
+            response_type=labeledmethod.response_types,
             service=service_template,
             request_stream=False,
             response_stream=False,

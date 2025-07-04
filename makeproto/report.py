@@ -16,6 +16,13 @@ class CompileErrorCode(Enum):
         "Name is used more than once in the same block",
     )
 
+    # E200 - Imports
+    INVALID_CLASS_PROTO_PATH = (
+        "E201",
+        "Invalid class",
+        "Class 'proto_path' attribute is not defined",
+    )
+
     # E400 - Descrições
     INVALID_COMMENT = (
         "E401",

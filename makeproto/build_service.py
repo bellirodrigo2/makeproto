@@ -1,5 +1,6 @@
 from collections import defaultdict
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type
+
+from typing_extensions import Any, Callable, Dict, List, Optional, Tuple, Type
 
 from makeproto.compiler import CompilerContext, CompilerPass
 from makeproto.interface import IService
@@ -64,13 +65,8 @@ def make_compiler_context(
 
 def make_templates(
     packlist: List[IService],
-    extract_requests: Callable[..., List[Type[Any]]],
-    extract_response: Callable[..., Type[Any]],
 ) -> List[ServiceTemplate]:
-    return [
-        make_service_template(service, extract_requests, extract_response)
-        for service in packlist
-    ]
+    return [make_service_template(service) for service in packlist]
 
 
 def run_compiler_passes(
@@ -89,8 +85,6 @@ def run_compiler_passes(
 
 def prepare_modules(
     services: Dict[str, List[IService]],
-    extract_requests: Callable[..., List[Type[Any]]],
-    extract_response: Callable[..., Type[Any]],
     version: int = 3,
 ) -> Tuple[List[ProtoTemplate], List[Tuple[List[ServiceTemplate], CompilerContext]]]:
 
@@ -103,7 +97,7 @@ def prepare_modules(
             continue
         allmodules, ctx = compiler_ctx
         all_templates.extend(allmodules)
-        templates = make_templates(service_list, extract_requests, extract_response)
+        templates = make_templates(service_list)
         compiler_execution.append((templates, ctx))
 
     return all_templates, compiler_execution
@@ -111,15 +105,11 @@ def prepare_modules(
 
 def compile_service_internal(
     services: Dict[str, List[IService]],
-    extract_requests: Callable[..., List[Type[Any]]],
-    extract_response: Callable[..., Type[Any]],
     compilerpasses: List[List[CompilerPass]],
     version: int = 3,
 ) -> Optional[Dict[str, Dict[str, str]]]:
 
-    all_templates, compiler_execution = prepare_modules(
-        services, extract_requests, extract_response, version
-    )
+    all_templates, compiler_execution = prepare_modules(services, version)
     try:
         for compilerpass in compilerpasses:
             run_compiler_passes(compiler_execution, compilerpass)
@@ -158,17 +148,15 @@ def make_validators(
 
 
 def make_setters(
-    get_protofile_path: Callable[[Type[Any]], str],
-    get_package: Callable[[Type[Any]], str],
     maxchar_per_line: int = 80,
     always_format: bool = True,
 ) -> List[CompilerPass]:
 
     setters: List[CompilerPass] = [
         ServiceSetter(),
-        TypeSetter(get_package),
+        TypeSetter(),
         NameSetter(),
-        ImportsSetter(get_protofile_path),
+        ImportsSetter(),
         CommentSetter(maxchar_per_line, always_format),
     ]
     return setters
@@ -176,10 +164,6 @@ def make_setters(
 
 def compile_service(
     services: Dict[str, List[IService]],
-    extract_requests: Callable[..., List[Type[Any]]],
-    extract_response: Callable[..., Type[Any]],
-    get_protofile_path: Callable[[Type[Any]], str],
-    get_package: Callable[[Type[Any]], str],
     custompassmethod: Callable[[Any], List[str]] = lambda x: [],
     maxchar_per_line: int = 80,
     always_format: bool = True,
@@ -187,14 +171,10 @@ def compile_service(
 ) -> Optional[Dict[str, Dict[str, str]]]:
 
     validators = make_validators(custompassmethod)
-    setters = make_setters(
-        get_protofile_path, get_package, maxchar_per_line, always_format
-    )
+    setters = make_setters(maxchar_per_line, always_format)
 
     return compile_service_internal(
         services,
-        extract_requests,
-        extract_response,
         [validators, setters],
         version,
     )

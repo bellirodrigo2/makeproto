@@ -1,5 +1,14 @@
 from pathlib import Path
-from typing import Any, Callable, List, Protocol, Type
+
+from typing_extensions import Any, Callable, List, Optional, Protocol, Type
+
+
+class IMetaType(Protocol):
+    argtype: Type[Any]
+    basetype: Type[Any]
+    origin: Optional[Type[Any]]
+    package: str
+    proto_path: str
 
 
 class ILabeledMethod(Protocol):
@@ -9,6 +18,8 @@ class ILabeledMethod(Protocol):
     service: str
     options: List[str]
     comments: str
+    request_types: List[IMetaType]
+    response_types: Optional[IMetaType]
 
 
 class IService(Protocol):

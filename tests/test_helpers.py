@@ -1,5 +1,8 @@
 from typing import Any, Callable, List, Optional, Type
 
+from typing_extensions import get_args, get_origin
+
+from makeproto.interface import IMetaType
 from makeproto.template import MethodTemplate, ServiceTemplate
 
 
@@ -22,6 +25,38 @@ def make_service(
     return service_template
 
 
+class MetaType:
+    def __init__(
+        self,
+        argtype: Type[Any],
+        basetype: Type[Any],
+        origin: Optional[Type[Any]],
+        package: str,
+        proto_path: str,
+    ) -> None:
+        self.argtype = argtype
+        self.basetype = basetype
+        self.origin = origin
+        self.package = package
+        self.proto_path = proto_path
+
+
+def make_metatype_from_type(
+    argtype: Type[Any],
+) -> IMetaType:
+    origin = get_origin(argtype)
+    basetype = argtype if origin is None else get_args(argtype)[0]
+    package = getattr(basetype, "package", "")
+    proto_path = getattr(basetype, "proto_path", "")
+    return MetaType(
+        argtype=argtype,
+        basetype=basetype,
+        origin=origin,
+        package=package,
+        proto_path=proto_path,
+    )
+
+
 def make_method(
     name: str,
     method: Optional[Callable[..., Any]] = None,
@@ -36,13 +71,23 @@ def make_method(
 
     service = service or make_service("mock_service")
 
+    if requests is None:
+        requests_ = []
+    else:
+        requests_ = [make_metatype_from_type(req) for req in requests]
+
+    if response is None:
+        response_ = None
+    else:
+        response_ = make_metatype_from_type(response)
+
     method_template = MethodTemplate(
         method_func=method,
         name=name,
         options=options or [],
         comments=comments,
-        request_types=requests or [],
-        response_type=response,
+        request_types=requests_,
+        response_type=response_,
         service=service,
         request_stream=request_stream,
         response_stream=response_stream,
