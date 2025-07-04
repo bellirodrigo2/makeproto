@@ -15,12 +15,11 @@ class ImportsValidator(CompilerPass):
     def _check_proto_path(
         self, btype: IMetaType, method_name: str, arg: str, report: CompileReport
     ) -> None:
-
-        if not hasattr(btype, "proto_path"):
+        if not btype.proto_path:
             report.report_error(
                 code=CompileErrorCode.INVALID_CLASS_PROTO_PATH,
                 location=method_name,
-                override_msg=f"{arg} class '{btype.__name__}' has no proto_path associated",
+                override_msg=f"{arg} class '{btype.basetype.__name__}' has no proto_path associated",
             )
 
     def visit_method(self, method: MethodTemplate) -> None:
