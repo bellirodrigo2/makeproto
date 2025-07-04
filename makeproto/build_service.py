@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from typing_extensions import Any, Callable, Dict, List, Optional, Tuple, Type
+from typing_extensions import Any, Callable, Dict, List, Optional, Tuple
 
 from makeproto.compiler import CompilerContext, CompilerPass
 from makeproto.interface import IService
@@ -164,14 +164,16 @@ def make_setters(
 
 def compile_service(
     services: Dict[str, List[IService]],
+    name_normalizer: Callable[[str], str] = lambda x: x,
+    format_comment: Callable[[str], str] = lambda x: x,
     custompassmethod: Callable[[Any], List[str]] = lambda x: [],
-    maxchar_per_line: int = 80,
-    always_format: bool = True,
     version: int = 3,
 ) -> Optional[Dict[str, Dict[str, str]]]:
 
     validators = make_validators(custompassmethod)
-    setters = make_setters(maxchar_per_line, always_format)
+    setters = make_setters(
+        name_normalizer=name_normalizer, format_comment=format_comment
+    )
 
     return compile_service_internal(
         services,
