@@ -23,7 +23,7 @@ def make_service_template(
 
         method_template = MethodTemplate(
             method_func=method,
-            name=method.__name__,
+            name=labeledmethod.name,
             options=labeledmethod.options,
             comments=labeledmethod.comments,
             request_types=labeledmethod.request_types,

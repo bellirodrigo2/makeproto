@@ -12,6 +12,7 @@ class IMetaType(Protocol):
 
 
 class ILabeledMethod(Protocol):
+    name: str
     method: Callable[..., Any]
     package: str
     module: str
