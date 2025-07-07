@@ -1,4 +1,4 @@
-from collections import defaultdict
+from typing import Generator
 
 from typing_extensions import Any, Callable, Dict, List, Optional, Tuple
 
@@ -107,7 +107,7 @@ def compile_service_internal(
     services: Dict[str, List[IService]],
     compilerpasses: List[List[CompilerPass]],
     version: int = 3,
-) -> Optional[Dict[str, Dict[str, str]]]:
+) -> Optional[Generator[Tuple[str, str, str], None, None]]:
 
     all_templates, compiler_execution = prepare_modules(services, version)
     try:
@@ -119,16 +119,15 @@ def compile_service_internal(
                 ctx.show()
         return None
 
-    protos_dict: Dict[str, Dict[str, str]] = defaultdict(dict)
+    def generate_protos() -> Generator[Tuple[str, str, str], None, None]:
+        for template in all_templates:
+            module_dict = template.to_dict()
+            if not module_dict:
+                continue
+            rendered = render_protofile_template(module_dict)
+            yield template.package, template.module, rendered
 
-    for template in all_templates:
-        module_dict = template.to_dict()
-        if not module_dict:
-            continue
-        rendered = render_protofile_template(module_dict)
-        protos_dict[template.package][template.module] = rendered
-
-    return protos_dict
+    return generate_protos()
 
 
 def make_validators(
@@ -168,7 +167,7 @@ def compile_service(
     format_comment: Callable[[str], str] = lambda x: x,
     custompassmethod: Callable[[Any], List[str]] = lambda x: [],
     version: int = 3,
-) -> Optional[Dict[str, Dict[str, str]]]:
+) -> Optional[Generator[Tuple[str, str, str], None, None]]:
 
     validators = make_validators(custompassmethod)
     setters = make_setters(
