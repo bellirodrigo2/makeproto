@@ -1,4 +1,4 @@
-from pathlib import Path
+from typing import Set
 
 from typing_extensions import Any, Callable, List, Optional, Protocol, Type
 
@@ -34,8 +34,8 @@ class IService(Protocol):
     def methods(self) -> List[ILabeledMethod]: ...
 
 
-class IMessageDefinition(Protocol):
-    msg_base_class: Any
-    instance_class: Type[Any]
-    get_package: Callable[[Type[Any]], str]
-    get_protofile_path: Callable[[Type[Any]], Path]
+class IProtoPackage(Protocol):
+    package: str
+    filename: str
+    content: str
+    depends: Set[str]

@@ -1,9 +1,11 @@
-from typing import Generator
+from collections import namedtuple
+from dataclasses import dataclass
+from typing import Generator, Set
 
 from typing_extensions import Any, Callable, Dict, List, Optional, Tuple
 
 from makeproto.compiler import CompilerContext, CompilerPass
-from makeproto.interface import IService
+from makeproto.interface import IProtoPackage, IService
 from makeproto.make_service_template import make_service_template
 from makeproto.setters.comment import CommentSetter
 from makeproto.setters.imports import ImportsSetter
@@ -103,11 +105,19 @@ def prepare_modules(
     return all_templates, compiler_execution
 
 
+@dataclass
+class ProtoPackage(IProtoPackage):
+    package: str
+    filename: str
+    content: str
+    depends: Set[str]
+
+
 def compile_service_internal(
     services: Dict[str, List[IService]],
     compilerpasses: List[List[CompilerPass]],
     version: int = 3,
-) -> Optional[Generator[Tuple[str, str, str], None, None]]:
+) -> Optional[Generator[IProtoPackage, None, None]]:
 
     all_templates, compiler_execution = prepare_modules(services, version)
     try:
@@ -119,13 +129,15 @@ def compile_service_internal(
                 ctx.show()
         return None
 
-    def generate_protos() -> Generator[Tuple[str, str, str], None, None]:
+    def generate_protos() -> Generator[IProtoPackage, None, None]:
         for template in all_templates:
             module_dict = template.to_dict()
             if not module_dict:
                 continue
             rendered = render_protofile_template(module_dict)
-            yield template.package, template.module, rendered
+            yield ProtoPackage(
+                template.package, template.module, rendered, template.imports
+            )
 
     return generate_protos()
 
@@ -167,7 +179,7 @@ def compile_service(
     format_comment: Callable[[str], str] = lambda x: x,
     custompassmethod: Callable[[Any], List[str]] = lambda x: [],
     version: int = 3,
-) -> Optional[Generator[Tuple[str, str, str], None, None]]:
+) -> Optional[Generator[IProtoPackage, None, None]]:
 
     validators = make_validators(custompassmethod)
     setters = make_setters(
