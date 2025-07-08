@@ -2,7 +2,7 @@ from typing import Any, Callable, List, Optional
 
 from makeproto.compiler import CompilerPass
 from makeproto.report import CompileErrorCode
-from makeproto.template import MethodTemplate
+from makeproto.template import MethodTemplate, ServiceTemplate
 
 
 class CustomPass(CompilerPass):
@@ -35,6 +35,10 @@ class CustomPass(CompilerPass):
         report = self.ctx.get_report(block_name=name)
         for error in error_msg:
             report.report_error(CompileErrorCode.RUNTIME_POSSIBLE_ERROR, name, error)
+
+    def visit_service(self, block: ServiceTemplate) -> None:
+        for field in block.methods:
+            field.accept(self)
 
     def visit_method(self, method: MethodTemplate) -> None:
         error_msg = self._visit_method(method.method_func)
