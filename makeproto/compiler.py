@@ -27,7 +27,7 @@ class CompilerContext:
 
     def get_report(self, block_name: Any) -> CompileReport:
         if block_name not in self.reports:
-            self.reports[block_name] = CompileReport(name=block_name)
+            self.reports[block_name] = CompileReport(name=block_name.name)
         return self.reports[block_name]
 
     def is_valid(self) -> bool:
