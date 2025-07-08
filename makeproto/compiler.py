@@ -37,7 +37,7 @@ class CompilerContext:
         console = Console()
         for name, report in self.reports.items():
             if len(report) > 0:
-                console.rule(f"[bold red]Block: {name.name}")
+                console.rule(f"[bold red]Package: {name.name}")
                 report.show()
         if self.is_valid():
             console.print("[green bold]✓ All blocks compiled successfully!")
