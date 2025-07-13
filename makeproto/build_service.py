@@ -177,7 +177,7 @@ def compile_service(
     services: Dict[str, List[IService]],
     name_normalizer: Callable[[str], str] = lambda x: x,
     format_comment: Callable[[str], str] = lambda x: x,
-    custompassmethod: Callable[[Any], List[str]] = lambda x: [],
+    custompassmethod: Callable[[Callable[..., Any]], List[str]] = lambda x: [],
     version: int = 3,
 ) -> Optional[Generator[IProtoPackage, None, None]]:
 
