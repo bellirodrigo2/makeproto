@@ -1,6 +1,6 @@
-from typing import Set
+from typing_extensions import Set
 
-from typing_extensions import Any, Callable, List, Optional, Protocol, Type
+from typing_extensions import Any, Callable, Sequence, Optional, Protocol, Type
 
 
 class IMetaType(Protocol):
@@ -17,9 +17,9 @@ class ILabeledMethod(Protocol):
     package: str
     module: str
     service: str
-    options: List[str]
+    options: Sequence[str]
     comments: str
-    request_types: List[IMetaType]
+    request_types: Sequence[IMetaType]
     response_types: Optional[IMetaType]
 
 
@@ -27,11 +27,11 @@ class IService(Protocol):
     name: str
     module: str
     package: str
-    options: List[str]
+    options: Sequence[str]
     comments: str
 
     @property
-    def methods(self) -> List[ILabeledMethod]: ...
+    def methods(self) -> Sequence[ILabeledMethod]: ...
 
 
 class IProtoPackage(Protocol):
