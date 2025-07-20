@@ -32,6 +32,9 @@ class IService(Protocol):
 
     @property
     def methods(self) -> Sequence[ILabeledMethod]: ...
+    
+    @property
+    def qual_name(self)->str:...
 
 
 class IProtoPackage(Protocol):
