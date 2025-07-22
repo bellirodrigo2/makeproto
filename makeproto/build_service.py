@@ -62,7 +62,7 @@ def make_compiler_context(
 
     report = ctx.get_report(PackageBlock(package_name))
     check_valid(package_name, report)
-    check_valid_filename(module_list, report)
+    check_valid_filename([f"{f}.proto" for f in module_list], report)
 
     for module in module_list:
         module_template = ProtoTemplate(
@@ -126,6 +126,14 @@ class ProtoPackage(IProtoPackage):
     filename: str
     content: str
     depends: Set[str]
+
+    @property
+    def qual_name(self) -> str:
+        file_path = f"{self.filename}.proto"
+        if self.package:
+            pack = self.package.replace(".", "/")
+            file_path = f"{pack}/{file_path}"
+        return file_path
 
 
 def compile_service_internal(

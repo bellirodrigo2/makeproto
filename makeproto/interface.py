@@ -40,3 +40,6 @@ class IProtoPackage(Protocol):
     filename: str
     content: str
     depends: Set[str]
+
+    @property
+    def qual_name(self) -> str: ...  # pragma: no cover
