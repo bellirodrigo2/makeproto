@@ -61,7 +61,8 @@ def make_compiler_context(
             self.name = f"Package<{name}>"
 
     report = ctx.get_report(PackageBlock(package_name))
-    check_valid(package_name, report)
+    if package_name:
+        check_valid(package_name, report)
     check_valid_filename([f"{f}.proto" for f in module_list], report)
 
     for module in module_list:
