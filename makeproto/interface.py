@@ -1,6 +1,4 @@
-from typing_extensions import Set
-
-from typing_extensions import Any, Callable, Sequence, Optional, Protocol, Type
+from typing_extensions import Any, Callable, Optional, Protocol, Sequence, Set, Type
 
 
 class IMetaType(Protocol):
@@ -31,10 +29,10 @@ class IService(Protocol):
     comments: str
 
     @property
-    def methods(self) -> Sequence[ILabeledMethod]: ...
-    
+    def methods(self) -> Sequence[ILabeledMethod]: ...  # pragma: no cover
+
     @property
-    def qual_name(self)->str:...
+    def qual_name(self) -> str: ...  # pragma: no cover
 
 
 class IProtoPackage(Protocol):

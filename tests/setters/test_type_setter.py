@@ -136,3 +136,29 @@ def test_method_same_package(context: CompilerContext, setter: TypeSetter) -> No
     assert method.request_stream is True
     assert method.response_str == "Mock1"
     assert method.response_stream is True
+
+
+def test_method_types_unary_no_request(
+    block: ServiceTemplate, context: CompilerContext, setter: TypeSetter
+) -> None:
+    method: MethodTemplate = make_method(
+        "Method1",
+        requests=[],
+        service=block,
+        response=Mock1,
+    )
+    setter.execute([block], context)
+    assert len(context) == 1
+
+
+def test_method_types_unary_no_response(
+    block: ServiceTemplate, context: CompilerContext, setter: TypeSetter
+) -> None:
+    method: MethodTemplate = make_method(
+        "Method1",
+        requests=[Mock1],
+        service=block,
+        response=None,
+    )
+    setter.execute([block], context)
+    assert len(context) == 1

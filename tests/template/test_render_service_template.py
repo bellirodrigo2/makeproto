@@ -1,11 +1,11 @@
-from makeproto.template import render_service_template
+from makeproto.template import render_protofile_template, render_service_template
 
 
 def normalize_proto(s: str) -> str:
     return "\n".join(line.strip() for line in s.strip().splitlines())
 
 
-def test_basic_service_with_options():
+def test_basic_service_with_options() -> None:
     result = render_service_template(
         {
             "service_name": "user_service",
@@ -36,7 +36,7 @@ def test_basic_service_with_options():
     assert normalize_proto(result) == normalize_proto(expected)
 
 
-def test_service_with_streams_and_no_options():
+def test_service_with_streams_and_no_options() -> None:
     result = render_service_template(
         {
             "service_name": "stream_service",
@@ -76,7 +76,7 @@ def test_service_with_streams_and_no_options():
     assert normalize_proto(result) == normalize_proto(expected)
 
 
-def test_multiple_options():
+def test_multiple_options() -> None:
     result = render_service_template(
         {
             "service_name": "multi_option",
@@ -108,7 +108,7 @@ def test_multiple_options():
     assert normalize_proto(result) == normalize_proto(expected)
 
 
-def test_service_with_no_methods():
+def test_service_with_no_methods() -> None:
     result = render_service_template(
         {
             "service_name": "empty_service",
@@ -125,7 +125,7 @@ def test_service_with_no_methods():
     assert normalize_proto(result) == normalize_proto(expected)
 
 
-def test_service_with_missing_comments():
+def test_service_with_missing_comments() -> None:
     result = render_service_template(
         {
             "service_name": "no_comments",
@@ -152,7 +152,7 @@ def test_service_with_missing_comments():
     assert normalize_proto(result) == normalize_proto(expected)
 
 
-def test_bidirectional_streaming():
+def test_bidirectional_streaming() -> None:
     result = render_service_template(
         {
             "service_name": "chat_service",
@@ -181,7 +181,7 @@ def test_bidirectional_streaming():
     assert normalize_proto(result) == normalize_proto(expected)
 
 
-def test_weird_characters_in_names():
+def test_weird_characters_in_names() -> None:
     result = render_service_template(
         {
             "service_name": "Service_123$",
@@ -210,7 +210,7 @@ def test_weird_characters_in_names():
     assert normalize_proto(result) == normalize_proto(expected)
 
 
-def test_method_with_none_options():
+def test_method_with_none_options() -> None:
     result = render_service_template(
         {
             "service_name": "null_options",
@@ -239,7 +239,7 @@ def test_method_with_none_options():
     assert normalize_proto(result) == normalize_proto(expected)
 
 
-def test_duplicate_methods():
+def test_duplicate_methods() -> None:
     result = render_service_template(
         {
             "service_name": "dup_service",
@@ -279,7 +279,7 @@ def test_duplicate_methods():
     assert normalize_proto(result) == normalize_proto(expected)
 
 
-def test_deeply_nested_types():
+def test_deeply_nested_types() -> None:
     result = render_service_template(
         {
             "service_name": "nested_types",
@@ -306,3 +306,8 @@ def test_deeply_nested_types():
     }
     """
     assert normalize_proto(result) == normalize_proto(expected)
+
+
+def test_empty_proto() -> None:
+    result = render_protofile_template({})
+    assert result == ""

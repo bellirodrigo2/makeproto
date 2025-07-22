@@ -1,12 +1,11 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import AsyncIterator
+from typing import AsyncIterator, List
 
 import pytest
 
 from makeproto.build_service import CompilationError, make_setters, make_validators
-from makeproto.compiler import CompilerContext
-from makeproto.format_comment import format_comment
+from makeproto.compiler import CompilerContext, CompilerPass
 from makeproto.template import (
     MethodTemplate,
     ProtoTemplate,
@@ -102,13 +101,11 @@ def simple_service() -> ServiceTemplate:
     return service
 
 
-def format_comment_(text: str) -> str:
-    return format_comment(text, 80, True)
-
-
-def test_protofile_basic(simple_service: ServiceTemplate) -> None:
+@pytest.fixture
+def simple_prototemplate() -> ProtoTemplate:
     protofile_name = "protofile1"
-    protofile = ProtoTemplate(
+
+    return ProtoTemplate(
         comments="Proto File for testing",
         package="my.package",
         module=protofile_name,
@@ -117,12 +114,20 @@ def test_protofile_basic(simple_service: ServiceTemplate) -> None:
         services=[],
         options=[],
     )
-    ctx = CompilerContext(state={protofile_name: protofile})
 
+
+@pytest.fixture
+def compiler_pass() -> List[List[CompilerPass]]:
     validators = make_validators()
-    setters = make_setters(format_comment=format_comment_)
-    compilerpasses = [validators, setters]
-    blocks = [simple_service]
+    setters = make_setters()
+    return [validators, setters]
+
+
+def build_proto(
+    ctx: CompilerContext,
+    blocks: List[ServiceTemplate],
+    compilerpasses: List[List[CompilerPass]],
+) -> None:
 
     for compilerpass in compilerpasses:
         for cpass in compilerpass:
@@ -132,13 +137,16 @@ def test_protofile_basic(simple_service: ServiceTemplate) -> None:
         if total_errors > 0:
             ctx.show()
             raise CompilationError([])
+
+
+def write_template(protofile: ProtoTemplate, expected_files: int) -> None:
     protofile_dict = protofile.to_dict()
 
     rendered = render_protofile_template(protofile_dict)
     with TemporaryDirectory() as temp_dir:
         proto_path = Path(temp_dir).resolve()
 
-        filename = "protofile.proto"
+        filename = f"{protofile.module}.proto"
         with open(proto_path / filename, "w", encoding="utf-8") as f:
             f.write(rendered)
 
@@ -150,4 +158,37 @@ def test_protofile_basic(simple_service: ServiceTemplate) -> None:
             output_dir=output_dir,
             add_google=True,
         )
-        assert len(list(proto_path.rglob("*"))) == 4
+        created_files = list(proto_path.rglob("*"))
+        assert len(created_files) == expected_files
+
+
+def test_protofile_basic(
+    simple_service: ServiceTemplate,
+    simple_prototemplate: ProtoTemplate,
+    compiler_pass: List[List[CompilerPass]],
+) -> None:
+    protofile = simple_prototemplate
+    ctx = CompilerContext(state={protofile.module: protofile})
+
+    no_method = ServiceTemplate(
+        name="empty_service",
+        comments="Empty Service",
+        options=[],
+        package="",
+        module="protofile1",
+        methods=[],
+    )
+    blocks = [simple_service, no_method]
+
+    build_proto(ctx, blocks, compiler_pass)
+    write_template(protofile, 4)
+
+
+def test_protofile_empty(
+    simple_prototemplate: ProtoTemplate,
+) -> None:
+    protofile = simple_prototemplate
+    protofile_dict = protofile.to_dict()
+
+    rendered = render_protofile_template(protofile_dict)
+    assert rendered == ""

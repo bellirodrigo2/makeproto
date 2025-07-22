@@ -1,6 +1,5 @@
-from typing import Any, Dict, List, Optional, Union
-
 from rich.console import Console
+from typing_extensions import Any, Dict, List, Optional
 
 from makeproto.report import CompileReport
 from makeproto.template import MethodTemplate, ServiceTemplate, Visitor
@@ -43,10 +42,6 @@ class CompilerContext:
             console.print("[green bold]✓ All blocks compiled successfully!")
 
 
-def list_ctx_error(context: CompilerContext) -> List[str]:
-    return [err.code for report in context.reports.values() for err in report.errors]
-
-
 def list_ctx_error_messages(context: CompilerContext) -> List[str]:
     return [err.message for report in context.reports.values() for err in report.errors]
 
@@ -81,24 +76,11 @@ class CompilerPass(Visitor):
         if self._ctx is None:
             raise RuntimeError(
                 "CompilerContext not set. Did you forget to call `.execute()`?"
-            )
+            )  # pragma: no cover
         return self._ctx
 
     def visit_service(self, block: ServiceTemplate) -> None:
-        return
+        return  # pragma: no cover
 
     def visit_method(self, method: MethodTemplate) -> None:
-        return
-
-
-def compile_proto(
-    blocks: list[ServiceTemplate],
-    passes: list[CompilerPass],
-    ctx: CompilerContext,
-    # settings: Optional[Dict[str, Any]] = None,
-) -> CompilerContext:
-
-    for p in passes:
-        p.execute(blocks, ctx)
-
-    return ctx
+        return  # pragma: no cover

@@ -1,19 +1,20 @@
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
-from typing_extensions import Any, Callable, Dict, List, Optional, Protocol, Set, Type
+from typing_extensions import Any, Callable, Dict, List, Optional, Protocol, Set
 
 from makeproto.interface import IMetaType
 
 
 class Visitor(Protocol):
-    def visit_service(self, block: "ServiceTemplate") -> None: ...
-    def visit_method(self, method: "MethodTemplate") -> None: ...
+    def visit_service(self, block: "ServiceTemplate") -> None: ...  # pragma: no cover
+    def visit_method(self, method: "MethodTemplate") -> None: ...  # pragma: no cover
 
 
 class ToDict(Protocol):
-    def to_dict(self) -> Dict[str, Any]: ...
+    def to_dict(self) -> Dict[str, Any]: ...  # pragma: no cover
 
 
 @dataclass
@@ -23,7 +24,7 @@ class Node:
     options: List[str]
 
     def accept(self, visitor: Visitor) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError()  # pragma: no cover
 
 
 @dataclass
@@ -73,17 +74,22 @@ class ServiceTemplate(Node, ToDict):
         visitor.visit_service(self)
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, ServiceTemplate):
-            return NotImplemented
-        return (
-            self.package == other.package
-            and self.module == other.module
-            and self.name == other.name
-        )
+        try:
+            return (
+                self.package == other.package  # type: ignore
+                and self.module == other.module  # type: ignore
+                and self.name == other.name  # type: ignore
+            )
+        except AttributeError:  # pragma: no cover
+            return False
 
     def to_dict(self) -> Dict[str, Any]:
         self_dict: Dict[str, Any] = {}
         if not self.methods:
+            warnings.warn(
+                f"Service: '{self.package}.{self.name}' is empty and it was ignored",
+                UserWarning,
+            )
             return self_dict
 
         self_dict["service_name"] = self.name
@@ -93,8 +99,6 @@ class ServiceTemplate(Node, ToDict):
         methods_dict: List[Dict[str, Any]] = []
         for method in self.methods:
             method_dict = method.to_dict()
-            if not method_dict:
-                continue
             methods_dict.append(method_dict)
         self_dict["methods"] = methods_dict
 
@@ -114,6 +118,10 @@ class ProtoTemplate(ToDict):
     def to_dict(self) -> Dict[str, Any]:
         self_dict: Dict[str, Any] = {}
         if not self.services:
+            warnings.warn(
+                f"Protofile: '{self.package or 'NO_PACKAGE'}.{self.module}.proto' is empty and it was ignored",
+                UserWarning,
+            )
             return self_dict
 
         self_dict["comment"] = self.comments
@@ -146,6 +154,8 @@ def render_service_template(data: Dict[str, str]) -> str:
 
 
 def render_protofile_template(data: Dict[str, str]) -> str:
+    if not data:
+        return ""
     env.globals["render_service_template"] = render_service_template
     template = env.get_template("protofile.j2")
     return template.render(data)

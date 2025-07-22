@@ -1,5 +1,4 @@
 from collections.abc import AsyncIterator
-from typing import Any, Callable, Optional, Tuple, Type, get_args, get_origin
 
 from makeproto.compiler import CompilerPass
 from makeproto.interface import IMetaType

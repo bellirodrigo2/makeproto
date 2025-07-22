@@ -1,4 +1,3 @@
-from typing import Any, Type
 
 from makeproto.compiler import CompilerPass
 from makeproto.interface import IMetaType
@@ -24,10 +23,14 @@ class ImportsValidator(CompilerPass):
 
     def visit_method(self, method: MethodTemplate) -> None:
         report = self.ctx.get_report(method.service)
+        if not method.request_types:
+            # should raise a compiler error on the types validator
+            return
         request_type = method.request_types[0]
         self._check_proto_path(request_type, method.name, "Request", report)
 
         response_type = method.response_type
         if response_type is None:
+            # should raise a compiler error on the types validator
             return
         self._check_proto_path(response_type, method.name, "Response", report)

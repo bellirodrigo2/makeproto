@@ -50,6 +50,7 @@ def test_field_no_type(validator_setup: Dict[str, Any]) -> None:
         [validator_setup["block"]], validator_setup["context"]
     )
     assert len(validator_setup["context"]) == 1
+    assert validator_setup["context"].has_errors()
     assert all(
         code == "E801" for code in list_ctx_error_code(validator_setup["context"])
     )
@@ -67,6 +68,7 @@ def test_method_ok_req(validator_setup: Dict[str, Any]) -> None:
         [validator_setup["service"]], validator_setup["context"]
     )
     assert len(validator_setup["context"]) == 0
+    assert validator_setup["context"].is_valid()
 
 
 def test_method_ok_stream_req(validator_setup: Dict[str, Any]) -> None:

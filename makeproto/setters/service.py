@@ -1,4 +1,5 @@
 from makeproto.compiler import CompilerPass
+from makeproto.report import CompileErrorCode, CompileReport
 from makeproto.template import ProtoTemplate, ServiceTemplate
 
 
@@ -8,5 +9,10 @@ class ServiceSetter(CompilerPass):
         module_template: ProtoTemplate = self.ctx.get_state(block.module)
         services = module_template.services
         if block in services:
-            raise
+            report: CompileReport = self.ctx.get_report(block)
+            report.report_error(
+                CompileErrorCode.SETTER_PASS_ERROR,
+                block.name,
+                f"Service '{block.name}' already exists on ProtoTemplate<{block.package},{block.module}>",
+            )
         services.append(block)

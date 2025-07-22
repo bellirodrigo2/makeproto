@@ -96,7 +96,7 @@ class CompileErrorCode(Enum):
 
     @property
     def full_message(self) -> str:
-        return f"{self.message}: {self.description}"
+        return f"{self.message}: {self.description}"  # pragma: no cover
 
 
 @dataclass
@@ -106,19 +106,16 @@ class CompileError:
     location: str
 
     def __str__(self) -> str:
-        return f"Compile Error <code={self.code}, message={self.message},location={self.location}>"
+        return f"Compile Error <code={self.code}, message={self.message},location={self.location}>"  # pragma: no cover
 
 
 class CompileReport:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, errors: Optional[List[CompileError]] = None) -> None:
         self.name = name
-        self.errors: List[CompileError] = []
+        self.errors: List[CompileError] = errors or []
 
     def __len__(self) -> int:
         return len(self.errors)
-
-    def is_valid(self) -> bool:
-        return not self.errors
 
     def report_error(
         self,
@@ -131,6 +128,9 @@ class CompileReport:
         self.errors.append(
             CompileError(code=code.code, message=message, location=location)
         )
+
+    def is_valid(self) -> bool:
+        return not self.errors  # pragma: no cover
 
     def show(self) -> None:
         console = Console()

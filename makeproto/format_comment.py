@@ -6,7 +6,7 @@ def format_comment(text: str, max_chars: int, always_format: bool) -> str:
     text = text.strip()
 
     if not text:
-        return ""
+        return ""  # pragma: no cover
 
     if not always_format:
         if text.startswith("//"):

@@ -9,4 +9,3 @@ __all__ = [
 ]
 
 from makeproto.build_service import compile_service
-from makeproto.interface import ILabeledMethod, IMetaType, IProtoPackage, IService

@@ -1,7 +1,5 @@
-from pathlib import Path
-from typing import Any, Type
-
 import pytest
+from typing_extensions import Any
 
 from makeproto.compiler import CompilerContext
 from makeproto.setters.imports import ImportsSetter
@@ -46,3 +44,23 @@ def test_imports_setter_ok(
     import_setter.execute([block], context)
 
     assert template.imports == {"objects/user.proto"}
+
+
+def test_imports_setter_no_prototemplate(
+    context_and_template: tuple[CompilerContext, ProtoTemplate, Any],
+) -> None:
+    _, template, block = context_and_template
+    context = CompilerContext()
+
+    make_method(
+        name="method1",
+        requests=[Mock1],
+        response=Mock1,
+        service=block,
+    )
+
+    import_setter = ImportsSetter()
+    import_setter.execute([block], context)
+
+    assert template.imports == set()
+    assert len(context) == 1

@@ -1,10 +1,11 @@
-from collections import namedtuple
 from dataclasses import dataclass
+from functools import partial
 from typing import Generator, Set
 
 from typing_extensions import Any, Callable, Dict, List, Optional, Tuple
 
 from makeproto.compiler import CompilerContext, CompilerPass
+from makeproto.format_comment import format_comment
 from makeproto.interface import IProtoPackage, IService
 from makeproto.make_service_template import make_service_template
 from makeproto.setters.comment import CommentSetter
@@ -16,7 +17,11 @@ from makeproto.template import ProtoTemplate, ServiceTemplate, render_protofile_
 from makeproto.validators.comment import CommentsValidator
 from makeproto.validators.custommethod import CustomPass
 from makeproto.validators.imports import ImportsValidator
-from makeproto.validators.name import BlockNameValidator, FieldNameValidator
+from makeproto.validators.name import (
+    BlockNameValidator,
+    FieldNameValidator,
+    check_valid,
+)
 from makeproto.validators.type import TypeValidator
 
 
@@ -62,6 +67,14 @@ def make_compiler_context(
         allmodules.append(module_template)
 
     ctx = CompilerContext(name=package_name, state=state)
+
+    class PackageBlock:
+        def __init__(self, name: str) -> None:
+            self.name = f"Package<{name}>"
+
+    report = ctx.get_report(PackageBlock(package_name))
+    check_valid(package_name, report)
+
     return allmodules, ctx
 
 
@@ -158,9 +171,12 @@ def make_validators(
     ]
 
 
+default_format = partial(format_comment, max_chars=80, always_format=True)
+
+
 def make_setters(
     name_normalizer: Callable[[str], str] = lambda x: x,
-    format_comment: Callable[[str], str] = lambda x: x,
+    format_comment: Callable[[str], str] = default_format,
 ) -> List[CompilerPass]:
 
     setters: List[CompilerPass] = [
