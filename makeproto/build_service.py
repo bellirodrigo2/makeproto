@@ -21,6 +21,7 @@ from makeproto.validators.name import (
     BlockNameValidator,
     FieldNameValidator,
     check_valid,
+    check_valid_filename,
 )
 from makeproto.validators.type import TypeValidator
 
@@ -53,6 +54,16 @@ def make_compiler_context(
     module_list = extract_module_list(packlist)
     package_name = packlist[0].package
 
+    ctx = CompilerContext(name=package_name, state=state)
+
+    class PackageBlock:
+        def __init__(self, name: str) -> None:
+            self.name = f"Package<{name}>"
+
+    report = ctx.get_report(PackageBlock(package_name))
+    check_valid(package_name, report)
+    check_valid_filename(module_list, report)
+
     for module in module_list:
         module_template = ProtoTemplate(
             comments="",
@@ -65,15 +76,6 @@ def make_compiler_context(
         )
         state[module] = module_template
         allmodules.append(module_template)
-
-    ctx = CompilerContext(name=package_name, state=state)
-
-    class PackageBlock:
-        def __init__(self, name: str) -> None:
-            self.name = f"Package<{name}>"
-
-    report = ctx.get_report(PackageBlock(package_name))
-    check_valid(package_name, report)
 
     return allmodules, ctx
 

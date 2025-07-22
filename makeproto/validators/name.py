@@ -1,5 +1,8 @@
 import re
-from typing import Optional, Set
+import tempfile
+from pathlib import Path
+
+from typing_extensions import Optional, Sequence, Set
 
 from makeproto.compiler import CompilerPass
 from makeproto.report import CompileErrorCode, CompileReport
@@ -103,3 +106,28 @@ class FieldNameValidator(NameValidator):
             f"Duplicated Method name '{name}' in the service '{method.service.name}'",
             report,
         )
+
+
+def check_valid_filename(names: Sequence[str], report: CompileReport) -> None:
+
+    fail_names = find_invalid_filenames(names)
+
+    for name in fail_names:
+        report.report_error(
+            code=CompileErrorCode.INVALID_NAME,
+            location=name,
+            override_msg=f"Invalid File Name: '{name}'",
+        )
+
+
+def find_invalid_filenames(filenames: Sequence[str]) -> Sequence[str]:
+    errors = []
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+        for name in filenames:
+            try:
+                file_path = tmp_path / name
+                file_path.write_text("test")
+            except (OSError, ValueError) as e:
+                errors.append(name)
+    return errors
