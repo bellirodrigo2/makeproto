@@ -1,6 +1,7 @@
 import re
 import tempfile
 from pathlib import Path
+from typing import List, Tuple
 
 from typing_extensions import Optional, Sequence, Set
 
@@ -35,7 +36,7 @@ PROTOBUF_RESERVED_WORDS = {
 }
 
 
-def check_valid(name: str, report: CompileReport) -> None:
+def check_valid(name: str, report: CompileReport, check_reserveds: bool = True) -> None:
 
     if not name:
         report.report_error(
@@ -49,7 +50,7 @@ def check_valid(name: str, report: CompileReport) -> None:
             location=name,
             override_msg=f"Invalid name: '{name}'",
         )
-    elif name in PROTOBUF_RESERVED_WORDS:
+    elif check_reserveds and name in PROTOBUF_RESERVED_WORDS:
         report.report_error(
             code=CompileErrorCode.RESERVED_NAME,
             location=name,
@@ -108,26 +109,26 @@ class FieldNameValidator(NameValidator):
         )
 
 
-def check_valid_filename(names: Sequence[str], report: CompileReport) -> None:
+def check_valid_filenames(names: Sequence[str], report: CompileReport) -> None:
 
     fail_names = find_invalid_filenames(names)
 
-    for name in fail_names:
+    for name, err in fail_names:
         report.report_error(
             code=CompileErrorCode.INVALID_NAME,
             location=name,
-            override_msg=f"Invalid File Name: '{name}'",
+            override_msg=f'Invalid File Name Error for {name}:\n "{err}"',
         )
 
 
-def find_invalid_filenames(filenames: Sequence[str]) -> Sequence[str]:
-    errors = []
+def find_invalid_filenames(filenames: Sequence[str]) -> Sequence[Tuple[str, str]]:
+    errors: List[Tuple[str, str]] = []
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir)
         for name in filenames:
             try:
                 file_path = tmp_path / name
                 file_path.write_text("test")
-            except (OSError, ValueError) as e:
-                errors.append(name)
+            except (OSError, ValueError, TypeError) as e:
+                errors.append((name, str(e)))
     return errors

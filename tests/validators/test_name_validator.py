@@ -1,8 +1,13 @@
 import pytest
 
 from makeproto.compiler import CompilerContext, list_ctx_error_code
+from makeproto.report import CompileReport
 from makeproto.template import ServiceTemplate
-from makeproto.validators.name import BlockNameValidator, FieldNameValidator
+from makeproto.validators.name import (
+    BlockNameValidator,
+    FieldNameValidator,
+    check_valid_filenames,
+)
 from tests.test_helpers import make_method, make_service
 
 
@@ -133,3 +138,14 @@ def test_duplicated_field_name(
     field_name_validator.execute([field_block], context)
     assert len(context) == 2
     assert all(code == "E104" for code in list_ctx_error_code(context))
+
+
+def test_invalid_modules_name() -> None:
+
+    invalid_names = ["valid", None, {"foo": "bar"}]
+
+    report = CompileReport("Test", [])
+
+    check_valid_filenames(invalid_names, report)
+    assert len(report.errors) == 2
+    assert [err.code for err in report.errors] == ["E101", "E101"]
