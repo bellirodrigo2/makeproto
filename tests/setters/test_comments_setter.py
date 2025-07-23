@@ -1,5 +1,3 @@
-import textwrap
-
 from makeproto.format_comment import format_comment
 
 

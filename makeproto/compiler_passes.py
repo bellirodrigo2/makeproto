@@ -1,5 +1,3 @@
-from functools import partial
-
 from typing_extensions import Any, Callable, List, Tuple
 
 from makeproto.compiler import CompilerContext, CompilerPass

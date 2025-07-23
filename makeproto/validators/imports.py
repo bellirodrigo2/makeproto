@@ -1,4 +1,3 @@
-
 from makeproto.compiler import CompilerPass
 from makeproto.interface import IMetaType
 from makeproto.report import CompileErrorCode, CompileReport

@@ -1,3 +1,5 @@
+from typing import Iterable
+
 from typing_extensions import Any, Callable, Optional, Protocol, Sequence, Set, Type
 
 
@@ -27,6 +29,9 @@ class IService(Protocol):
     package: str
     options: Sequence[str]
     comments: str
+
+    module_level_options: Iterable[str]
+    module_level_comments: Iterable[str]
 
     @property
     def methods(self) -> Sequence[ILabeledMethod]: ...  # pragma: no cover

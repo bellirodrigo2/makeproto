@@ -5,6 +5,7 @@ from typing import (
     Any,
     AsyncIterator,
     Callable,
+    Iterable,
     Optional,
     Sequence,
     Type,
@@ -16,7 +17,6 @@ import pytest
 from google.protobuf.empty_pb2 import Empty
 
 from makeproto.interface import ILabeledMethod, IMetaType, IService
-from makeproto.template import ProtoTemplate, render_protofile_template
 from tests.compile_helper import compile_protoc
 
 
@@ -92,6 +92,9 @@ class Service(IService):
     options: Sequence[str] = field(default_factory=list[str])
     comments: str = ""
     _methods: Sequence["LabeledMethod"] = field(default_factory=list["LabeledMethod"])
+
+    module_level_options: Iterable[str] = field(default_factory=list[str])
+    module_level_comments: Iterable[str] = field(default_factory=list[str])
 
     @property
     def methods(self) -> Sequence["LabeledMethod"]:

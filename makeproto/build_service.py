@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generator, Set
+from typing import Generator, Iterable, Mapping, Set
 
 from typing_extensions import Any, Callable, Dict, List, Optional, Tuple
 
@@ -11,6 +11,7 @@ from makeproto.compiler_passes import (
     make_validators,
     run_compiler_passes,
 )
+from makeproto.format_comment import format_comment
 from makeproto.interface import IProtoPackage, IService
 from makeproto.make_service_template import make_service_template
 from makeproto.template import ProtoTemplate, ServiceTemplate, render_protofile_template
@@ -102,6 +103,28 @@ def prepare_modules(
     return all_templates, compiler_execution
 
 
+def extract_modules(
+    packlist: List[IService],
+) -> Mapping[str, Tuple[Iterable[str], Iterable[str]]]:
+
+    modules: Dict[str, Tuple[Set[str], Set[str]]] = {}
+    for service in packlist:
+        mod_name = service.module
+        mod_opt = service.module_level_options
+        mod_com = service.module_level_comments
+        if mod_name not in modules:
+            modules[mod_name] = (
+                set(mod_opt),
+                set(mod_com),
+            )
+        else:
+            option, comment = modules[mod_name]
+            option.update(mod_opt)
+            comment.update(mod_com)
+
+    return modules
+
+
 def make_compiler_context(
     packlist: List[IService],
     version: int = 3,
@@ -112,20 +135,22 @@ def make_compiler_context(
 
     allmodules: List[ProtoTemplate] = []
     state: Dict[str, ProtoTemplate] = {}
-    module_list = list(set([service.module for service in packlist]))
+    module_list = extract_modules(packlist)
     package_name = packlist[0].package
 
-    for module in module_list:
+    for modulename, (options, comments) in module_list.items():
+
+        formated_comment = format_comment("\n".join(comments))
         module_template = ProtoTemplate(
-            comments="",
+            comments=formated_comment,
             syntax=version,
-            module=module,
+            module=modulename,
             package=package_name,
             imports=set(),
             services=[],
-            options=[],
+            options=list(options),
         )
-        state[module] = module_template
+        state[modulename] = module_template
         allmodules.append(module_template)
 
     ctx = CompilerContext(name=package_name, state=state)

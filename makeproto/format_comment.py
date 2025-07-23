@@ -1,7 +1,3 @@
-import textwrap
-from typing import List
-
-
 def format_comment(text: str) -> str:
     if not text:
         return ""  # pragma: no cover

@@ -141,7 +141,7 @@ def test_method_same_package(context: CompilerContext, setter: TypeSetter) -> No
 def test_method_types_unary_no_request(
     block: ServiceTemplate, context: CompilerContext, setter: TypeSetter
 ) -> None:
-    method: MethodTemplate = make_method(
+    make_method(
         "Method1",
         requests=[],
         service=block,
@@ -154,7 +154,7 @@ def test_method_types_unary_no_request(
 def test_method_types_unary_no_response(
     block: ServiceTemplate, context: CompilerContext, setter: TypeSetter
 ) -> None:
-    method: MethodTemplate = make_method(
+    make_method(
         "Method1",
         requests=[Mock1],
         service=block,
